@@ -16,6 +16,7 @@ fn test_syntax() {
 			Value::String("string with spaces".into()),
 		),
 		("\"äççéñt\"", Value::String("äççéñt".into())),
+		("\"😂\"", Value::String("😂".into())),
 		("x <- y <- 0", Value::Int(0)),
 		("0 -> y -> x", Value::Int(0)),
 	]);
