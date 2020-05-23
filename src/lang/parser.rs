@@ -1,6 +1,13 @@
 use crate::lang::syntax::*;
 use std::collections::HashMap;
 
+fn unop(target: Syntax, op: UnaryOperator) -> Syntax {
+	Syntax::UnaryOp {
+		op,
+		target: Box::new(target),
+	}
+}
+
 fn binop(lhs: Syntax, rhs: Syntax, op: BinaryOperator) -> Syntax {
 	Syntax::BinaryOp {
 		op,
@@ -34,6 +41,15 @@ peg::parser! {
 			--
 			lhs:(@) _ "->" _ rhs:@ { binop(lhs, rhs, BinaryOperator::RAssign) }
 			--
+			"!" _ target:@ { unop(target, UnaryOperator::Negate) }
+			--
+			lhs:(@) _ "==" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Equal) }
+			lhs:(@) _ "!=" _ rhs:@ { binop(lhs, rhs, BinaryOperator::NotEqual) }
+			lhs:(@) _ ">" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Gt) }
+			lhs:(@) _ ">=" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Gte) }
+			lhs:(@) _ "<" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Lt) }
+			lhs:(@) _ "<=" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Lte) }
+			--
 			lhs:(@) _ "+" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Add) }
 			lhs:(@) _ "-" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Sub) }
 			--
@@ -56,6 +72,8 @@ peg::parser! {
 					named_args: HashMap::new(),
 				}
 			}
+			--
+			"-" _ target:@ { unop(target, UnaryOperator::Minus) }
 			--
 			lhs:(@) "::" rhs:@ { binop(lhs, rhs, BinaryOperator::Access) }
 			--

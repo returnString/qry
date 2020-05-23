@@ -24,7 +24,7 @@ impl InterpreterState {
 		};
 
 		add_lib(stdlib::core::types_module(), true);
-		add_lib(stdlib::core::ops_module(), true);
+		add_lib(stdlib::core::ops_module(), false);
 
 		InterpreterState {
 			global_env: global_env_ptr,
@@ -62,6 +62,22 @@ fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> Result<Value, 
 		}
 		_ => Err(InterpreterError::IllegalAssignment),
 	}
+}
+
+fn eval_unop(
+	ctx: &EvalContext,
+	target: &Syntax,
+	op: UnaryOperator,
+) -> Result<Value, InterpreterError> {
+	stdlib::core::UNOP_LOOKUP.with(|m| {
+		if let Some(method) = m.get(&op) {
+			method
+				.borrow()
+				.call(ctx, &[(&"a".to_string(), eval_in_env(ctx, target)?)], &[])
+		} else {
+			Err(InterpreterError::MethodNotImplemented)
+		}
+	})
 }
 
 fn eval_binop(
@@ -180,6 +196,7 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> Result<Value, Interprete
 		Syntax::Bool(val) => Ok(Value::Bool(*val)),
 		Syntax::Null => Ok(Value::Null),
 		Syntax::BinaryOp { lhs, rhs, op } => eval_binop(ctx, lhs, rhs, *op),
+		Syntax::UnaryOp { target, op } => eval_unop(ctx, target, *op),
 		Syntax::Function {
 			name,
 			params,
