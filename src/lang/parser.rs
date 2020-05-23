@@ -103,7 +103,7 @@ peg::parser! {
 		}
 
 		pub rule program() -> Vec<Syntax>
-			= exprs:expr() ** _ { exprs }
+			= _ exprs:expr() ** _ _ { exprs }
 	}
 }
 
