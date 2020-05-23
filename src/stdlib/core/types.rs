@@ -1,4 +1,5 @@
 use crate::runtime::{Builtin, Environment, EnvironmentPtr, Parameter, Signature, Type, Value};
+use crate::stdlib::ops::RUNTIME_OPS;
 
 fn typeof_func(args: &[Value]) -> Value {
 	let target = &args[0];
@@ -9,8 +10,8 @@ fn parse_func(args: &[Value]) -> Value {
 	args[0].clone()
 }
 
-pub fn types_module() -> EnvironmentPtr {
-	let env = Environment::new("types");
+pub fn env() -> EnvironmentPtr {
+	let env = Environment::new("core");
 	{
 		let mut env = env.borrow_mut();
 		env.update("Null", Value::Type(Type::Null));
@@ -18,6 +19,10 @@ pub fn types_module() -> EnvironmentPtr {
 		env.update("Float", Value::Type(Type::Float));
 		env.update("String", Value::Type(Type::String));
 		env.update("Bool", Value::Type(Type::Bool));
+
+		RUNTIME_OPS.with(|o| {
+			env.update("to_string", Value::Method(o.to_string.clone()));
+		});
 
 		env.update(
 			"typeof",

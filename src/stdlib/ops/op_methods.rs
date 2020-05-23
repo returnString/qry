@@ -4,7 +4,7 @@ use crate::runtime::{
 };
 use std::collections::HashMap;
 
-pub fn ops_module() -> EnvironmentPtr {
+pub fn env() -> EnvironmentPtr {
 	let env = Environment::new("ops");
 
 	{
@@ -146,12 +146,32 @@ macro_rules! unop {
 	};
 }
 
+pub struct RuntimeOps {
+	pub to_string: MethodPtr,
+}
+
 thread_local! {
+	pub static RUNTIME_OPS: RuntimeOps = {
+		let to_string = Method::new(&["val"], Some(Type::String));
+
+		{
+			let mut to_string = to_string.borrow_mut();
+			to_string.register(unop!(String, String, |a| a));
+			to_string.register(unop!(Int, String, |a: i64| a.to_string().into_boxed_str()));
+			to_string.register(unop!(Float, String, |a: f64| a.to_string().into_boxed_str()));
+			to_string.register(unop!(Bool, String, |a: bool| a.to_string().into_boxed_str()));
+		}
+
+		RuntimeOps {
+			to_string,
+		}
+	};
+
 	#[allow(clippy::float_cmp)] // this is invoked by the Float == Float method
 	pub static BINOP_LOOKUP: HashMap<BinaryOperator, MethodPtr> = {
 		let mut m = HashMap::new();
 		let mut new_binop = |op| {
-			let method = Method::new(&["a", "b"]);
+			let method = Method::new(&["a", "b"], None);
 			m.insert(op, method.clone());
 			method
 		};
@@ -178,6 +198,7 @@ thread_local! {
 			let mut add = add.borrow_mut();
 			let mut equal = equal.borrow_mut();
 			let mut not_equal = not_equal.borrow_mut();
+
 			add.register(binop!(String, String, String, |a, b| format!("{}{}", a, b).into_boxed_str()));
 			equal.register(binop!(String, String, Bool, |a, b| a == b));
 			not_equal.register(binop!(String, String, Bool, |a, b| a != b));
@@ -189,7 +210,7 @@ thread_local! {
 	pub static UNOP_LOOKUP: HashMap<UnaryOperator, MethodPtr> = {
 		let mut m = HashMap::new();
 		let mut new_unop = |op| {
-			let method = Method::new(&["a"]);
+			let method = Method::new(&["a"], None);
 			m.insert(op, method.clone());
 			method
 		};

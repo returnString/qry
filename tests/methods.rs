@@ -25,6 +25,10 @@ fn test_methods() {
 		("(\"hai\" + \"world\") == \"haiworld\"", Value::Bool(true)),
 		("(\"hai\" + \"world\") == \"bye\"", Value::Bool(false)),
 		("(\"hai\" + \"world\") != \"haiworld\"", Value::Bool(false)),
+		("to_string(10)", Value::String("10".into())),
+		("to_string(1.5)", Value::String("1.5".into())),
+		("to_string(true)", Value::String("true".into())),
+		("to_string(false)", Value::String("false".into())),
 	]);
 }
 

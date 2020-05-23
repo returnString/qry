@@ -5,8 +5,8 @@ mod helpers;
 #[test]
 fn test_imports() {
 	helpers::eval_expect_values(&[
-		("use types::{Int} Int", Value::Type(Type::Int)),
-		("use types types::Int", Value::Type(Type::Int)),
+		("use core::{Int} Int", Value::Type(Type::Int)),
+		("use core core::Int", Value::Type(Type::Int)),
 	]);
 }
 
@@ -14,7 +14,7 @@ fn test_imports() {
 fn test_import_failures() {
 	helpers::eval_expect_errors(&[
 		(
-			"use types::{blah}",
+			"use core::{blah}",
 			InterpreterError::NotFound("blah".into()),
 		),
 		(

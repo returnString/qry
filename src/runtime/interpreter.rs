@@ -23,8 +23,8 @@ impl InterpreterState {
 			}
 		};
 
-		add_lib(stdlib::core::types_module(), true);
-		add_lib(stdlib::core::ops_module(), false);
+		add_lib(stdlib::core::env(), true);
+		add_lib(stdlib::ops::env(), false);
 
 		InterpreterState {
 			global_env: global_env_ptr,
@@ -69,7 +69,7 @@ fn eval_unop(
 	target: &Syntax,
 	op: UnaryOperator,
 ) -> Result<Value, InterpreterError> {
-	stdlib::core::UNOP_LOOKUP.with(|m| {
+	stdlib::ops::UNOP_LOOKUP.with(|m| {
 		if let Some(method) = m.get(&op) {
 			method
 				.borrow()
@@ -106,7 +106,7 @@ fn eval_binop(
 				Err(InterpreterError::InvalidTypeForImport)
 			}
 		}
-		_ => stdlib::core::BINOP_LOOKUP.with(|m| {
+		_ => stdlib::ops::BINOP_LOOKUP.with(|m| {
 			if let Some(method) = m.get(&op) {
 				method.borrow().call(
 					ctx,

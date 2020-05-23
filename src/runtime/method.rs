@@ -7,12 +7,13 @@ use std::rc::Rc;
 pub struct Method {
 	signature: Signature,
 	impls: HashMap<Vec<Type>, Rc<dyn Callable>>,
+	fixed_return_type: Option<Type>,
 }
 
 pub type MethodPtr = Rc<RefCell<Method>>;
 
 impl Method {
-	pub fn new(dispatch_param_names: &[&str]) -> MethodPtr {
+	pub fn new(dispatch_param_names: &[&str], fixed_return_type: Option<Type>) -> MethodPtr {
 		let params = dispatch_param_names
 			.iter()
 			.map(|n| Parameter {
@@ -22,8 +23,10 @@ impl Method {
 			.collect::<Vec<_>>();
 
 		Rc::new(RefCell::new(Self {
+			fixed_return_type: fixed_return_type.clone(),
 			signature: Signature {
-				return_type: Type::Null,
+				// FIXME: need a better placeholder for methods with varying return types
+				return_type: fixed_return_type.unwrap_or(Type::Null),
 				params,
 				with_trailing: false,
 				with_named_trailing: false,
@@ -37,6 +40,10 @@ impl Method {
 	}
 
 	pub fn register(&mut self, callable: Rc<dyn Callable>) {
+		if let Some(return_type) = &self.fixed_return_type {
+			assert_eq!(*return_type, callable.signature().return_type)
+		}
+
 		let key = self.get_sig_key(
 			&callable
 				.signature()
