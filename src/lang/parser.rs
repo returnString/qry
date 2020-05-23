@@ -45,6 +45,10 @@ peg::parser! {
 		rule fn_anon_prefix() -> Option<String>
 			= "fn" { None }
 
+		// FIXME: add char escapes
+		rule string_contents() -> String
+			= s:$(!"\"" [_])* { s.iter().fold("".to_string(), |acc, val| format!("{}{}", acc, val)) }
+
 		rule expr() -> Syntax = precedence!{
 			lhs:@ _ "<-" _ rhs:(@) { binop(lhs, rhs, BinaryOperator::LAssign) }
 			--
@@ -91,7 +95,7 @@ peg::parser! {
 			--
 			n:$(['0'..='9']+ "." ['0'..='9']*) { Syntax::Float(n.parse().unwrap()) }
 			n:$(['0'..='9']+) { Syntax::Int(n.parse().unwrap()) }
-			"\"" s:$(['a'..='z' | 'A'..='Z']+) "\"" { Syntax::String(s.to_string()) }
+			"\"" s:string_contents() "\"" { Syntax::String(s) }
 			b:$("true" / "false") { Syntax::Bool(b == "true") }
 			"null" { Syntax::Null }
 			ident:ident() { Syntax::Ident(ident) }

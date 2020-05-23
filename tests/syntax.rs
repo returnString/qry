@@ -11,6 +11,11 @@ fn test_syntax() {
 		("true", Value::Bool(true)),
 		("false", Value::Bool(false)),
 		("\"mystr\"", Value::String("mystr".into())),
+		(
+			"\"string with spaces\"",
+			Value::String("string with spaces".into()),
+		),
+		("\"äççéñt\"", Value::String("äççéñt".into())),
 		("x <- y <- 0", Value::Int(0)),
 		("0 -> y -> x", Value::Int(0)),
 	]);
