@@ -1,5 +1,6 @@
 use super::{Builtin, EnvironmentPtr, Function, MethodPtr};
 use crate::lang::Syntax;
+use std::any::{Any, TypeId};
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -17,6 +18,7 @@ pub enum Type {
 	Syntax,
 	SyntaxPlaceholder,
 	MethodDispatchPlaceholder,
+	Native(TypeId),
 }
 
 #[derive(Debug, Clone)]
@@ -32,11 +34,12 @@ pub enum Value {
 	Method(MethodPtr),
 	Library(EnvironmentPtr),
 	Syntax(Box<Syntax>),
+	Native(Rc<dyn Any>),
 }
 
 impl Value {
 	pub fn runtime_type(&self) -> Type {
-		match *self {
+		match self {
 			Self::Null => Type::Null,
 			Self::Int(_) => Type::Int,
 			Self::Float(_) => Type::Float,
@@ -48,10 +51,24 @@ impl Value {
 			Self::Method(_) => Type::Method,
 			Self::Library(_) => Type::Library,
 			Self::Syntax(_) => Type::Syntax,
+			Self::Native(obj) => Type::Native(obj.type_id()),
 		}
+	}
+
+	pub fn as_native<T>(&self) -> Rc<T>
+	where
+		T: Any,
+	{
+		if let Self::Native(obj) = self {
+			return obj.clone().downcast::<T>().unwrap();
+		}
+
+		panic!("value is not a native type");
 	}
 }
 
+// FIXME: only used for unit tests
+// switch to matching to remove this outright
 impl PartialEq<Value> for Value {
 	fn eq(&self, other: &Value) -> bool {
 		match (self, &other) {
@@ -61,10 +78,6 @@ impl PartialEq<Value> for Value {
 			(Value::Bool(a), Value::Bool(b)) => a == b,
 			(Value::String(a), Value::String(b)) => a == b,
 			(Value::Type(a), Value::Type(b)) => a == b,
-			(Value::Function(a), Value::Function(b)) => Rc::ptr_eq(a, b),
-			(Value::Builtin(a), Value::Builtin(b)) => Rc::ptr_eq(a, b),
-			(Value::Method(a), Value::Method(b)) => Rc::ptr_eq(a, b),
-			(Value::Library(a), Value::Library(b)) => Rc::ptr_eq(a, b),
 			(Value::Syntax(a), Value::Syntax(b)) => a == b,
 			_ => false,
 		}
