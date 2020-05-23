@@ -51,7 +51,7 @@ impl Value {
 			Self::Method(_) => Type::Method,
 			Self::Library(_) => Type::Library,
 			Self::Syntax(_) => Type::Syntax,
-			Self::Native(obj) => Type::Native(obj.type_id()),
+			Self::Native(obj) => Type::Native((**obj).type_id()),
 		}
 	}
 
