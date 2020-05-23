@@ -7,6 +7,8 @@ edition = "2018"
 [dependencies]
 peg = "0.6.2"
 rustyline = "6.1.2"
+arrow = { version = "0.16.0", features = ["simd"] }
+rusqlite = { version = "0.21.0", features = ["bundled"] }
 
 [[bin]]
 name = "qry"
