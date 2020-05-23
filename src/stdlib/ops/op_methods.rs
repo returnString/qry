@@ -126,23 +126,27 @@ macro_rules! numeric_binops {
 	};
 }
 
+#[macro_export]
 macro_rules! unop {
-	($target_type: ident, $return_type: ident, $builder: expr) => {
+	($container_type: ident, $target_type: expr, $return_type: ident, $builder: expr) => {
 		Builtin::new(
 			Signature {
 				params: vec![Parameter {
 					name: "a".to_string(),
-					param_type: Type::$target_type,
+					param_type: $target_type,
 				}],
 				return_type: Type::$return_type,
 				with_trailing: false,
 				with_named_trailing: false,
 			},
 			|args| match &args[0] {
-				Value::$target_type(a) => Value::$return_type($builder(a.clone())),
+				Value::$container_type(a) => Value::$return_type($builder(a.clone())),
 				_ => unreachable!(),
 			},
 			)
+	};
+	($target_type: ident, $return_type: ident, $builder: expr) => {
+		unop!($target_type, Type::$target_type, $return_type, $builder)
 	};
 }
 
