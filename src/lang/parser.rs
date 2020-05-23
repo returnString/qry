@@ -21,6 +21,9 @@ peg::parser! {
 		rule _()
 			= [' ' | '\n' | '\t' | '\r']*
 
+		rule __()
+			= [' ' | '\n' | '\t' | '\r']+
+
 		rule ident() -> String
 			= s:$(['a'..='z' | 'A'..='Z' | '_']+) { s.to_string() }
 
@@ -35,6 +38,12 @@ peg::parser! {
 
 		rule import_lib() -> Import
 			= name:ident() { Import::Named(vec![name]) }
+
+		rule fn_named_prefix() -> Option<String>
+			= "fn" __ name:ident() { Some(name) }
+
+		rule fn_anon_prefix() -> Option<String>
+			= "fn" { None }
 
 		rule expr() -> Syntax = precedence!{
 			lhs:@ _ "<-" _ rhs:(@) { binop(lhs, rhs, BinaryOperator::LAssign) }
@@ -56,7 +65,7 @@ peg::parser! {
 			lhs:(@) _ "*" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Mul) }
 			lhs:(@) _ "/" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Div) }
 			--
-			"fn" _ name:ident()? "(" _ params:param_def() ** (_ "," _) ")" _ "->" _ return_type:expr() _ "{" _ body:expr()* _ "}"  {
+			name:(fn_named_prefix() / fn_anon_prefix()) _ "(" _ params:param_def() ** (_ "," _) ")" _ "->" _ return_type:expr() _ "{" _ body:expr()* _ "}"  {
 				Syntax::Function {
 					name,
 					params,
@@ -77,8 +86,8 @@ peg::parser! {
 			--
 			lhs:(@) "::" rhs:@ { binop(lhs, rhs, BinaryOperator::Access) }
 			--
-			"use" _ from:ident() ** "::" import:(import_named() / import_wildcard() / import_lib()) { Syntax::Use { from, import } }
-			"use" _ import:import_lib() { Syntax::Use { from: vec![], import } }
+			"use" __ from:ident() ** "::" import:(import_named() / import_wildcard() / import_lib()) { Syntax::Use { from, import } }
+			"use" __ import:import_lib() { Syntax::Use { from: vec![], import } }
 			--
 			n:$(['0'..='9']+ "." ['0'..='9']*) { Syntax::Float(n.parse().unwrap()) }
 			n:$(['0'..='9']+) { Syntax::Int(n.parse().unwrap()) }
@@ -86,7 +95,7 @@ peg::parser! {
 			b:$("true" / "false") { Syntax::Bool(b == "true") }
 			"null" { Syntax::Null }
 			ident:ident() { Syntax::Ident(ident) }
-			"(" e:expr() ")" { e }
+			"(" _ e:expr() _ ")" { e }
 		}
 
 		pub rule program() -> Vec<Syntax>
