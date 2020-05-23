@@ -156,12 +156,12 @@ thread_local! {
 			method
 		};
 
-		let add_method = new_binop(BinaryOperator::Add);
+		let add = new_binop(BinaryOperator::Add);
 		new_binop(BinaryOperator::Sub);
 		new_binop(BinaryOperator::Mul);
 		new_binop(BinaryOperator::Div);
-		new_binop(BinaryOperator::Equal);
-		new_binop(BinaryOperator::NotEqual);
+		let equal = new_binop(BinaryOperator::Equal);
+		let not_equal = new_binop(BinaryOperator::NotEqual);
 		new_binop(BinaryOperator::Lt);
 		new_binop(BinaryOperator::Lte);
 		new_binop(BinaryOperator::Gt);
@@ -175,8 +175,12 @@ thread_local! {
 
 			equality_ops!(m, Bool, Bool, bool);
 
-			let mut add_method = add_method.borrow_mut();
-			add_method.register(binop!(String, String, String, |a, b| format!("{}{}", a, b).into_boxed_str()));
+			let mut add = add.borrow_mut();
+			let mut equal = equal.borrow_mut();
+			let mut not_equal = not_equal.borrow_mut();
+			add.register(binop!(String, String, String, |a, b| format!("{}{}", a, b).into_boxed_str()));
+			equal.register(binop!(String, String, Bool, |a, b| a == b));
+			not_equal.register(binop!(String, String, Bool, |a, b| a != b));
 		}
 
 		m

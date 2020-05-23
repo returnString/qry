@@ -22,6 +22,9 @@ fn test_methods() {
 		("10.1 > 10", Value::Bool(true)),
 		("-1", Value::Int(-1)),
 		("-10.5", Value::Float(-10.5)),
+		("(\"hai\" + \"world\") == \"haiworld\"", Value::Bool(true)),
+		("(\"hai\" + \"world\") == \"bye\"", Value::Bool(false)),
+		("(\"hai\" + \"world\") != \"haiworld\"", Value::Bool(false)),
 	]);
 }
 
