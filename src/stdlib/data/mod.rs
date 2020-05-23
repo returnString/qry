@@ -1,13 +1,14 @@
 use crate::runtime::{Builtin, Environment, EnvironmentPtr, Parameter, Signature, Type, Value};
 use crate::stdlib::ops::RUNTIME_OPS;
-use crate::unop;
 use std::any::TypeId;
 use std::rc::Rc;
 
 mod connection;
 
 fn connect_func(_: &[Value]) -> Value {
-	Value::Native(Rc::new(connection::Connection {}))
+	Value::Native(Rc::new(connection::Connection {
+		driver: "sqlite".into(),
+	}))
 }
 
 fn use_conn(args: &[Value]) -> Value {
@@ -53,9 +54,18 @@ pub fn env() -> EnvironmentPtr {
 
 	RUNTIME_OPS.with(|o| {
 		let mut to_string = o.to_string.borrow_mut();
-		to_string.register(unop!(Native, connection_type.clone(), String, |_| {
-			"Connection".into()
-		}));
+		to_string.register(Builtin::new(
+			Signature::returning(Type::String).param("obj", connection_type),
+			|args| {
+				Value::String(
+					format!(
+						"Connection: {}",
+						args[0].as_native::<connection::Connection>().driver
+					)
+					.into_boxed_str(),
+				)
+			},
+		));
 	});
 
 	env

@@ -3,7 +3,9 @@ pub trait ConnectionImpl {
 }
 
 #[derive(Debug)]
-pub struct Connection {}
+pub struct Connection {
+	pub driver: String,
+}
 
 impl Drop for Connection {
 	fn drop(&mut self) {

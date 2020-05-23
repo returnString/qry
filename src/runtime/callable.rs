@@ -15,6 +15,26 @@ pub struct Signature {
 	pub with_named_trailing: bool,
 }
 
+impl Signature {
+	pub fn returning(return_type: Type) -> Self {
+		Self {
+			return_type,
+			params: Vec::new(),
+			with_trailing: false,
+			with_named_trailing: false,
+		}
+	}
+
+	pub fn param(&self, name: &str, param_type: Type) -> Self {
+		let mut ret = self.clone();
+		ret.params.push(Parameter {
+			name: name.into(),
+			param_type,
+		});
+		ret
+	}
+}
+
 pub trait Callable {
 	fn signature(&self) -> &Signature;
 	fn call(
