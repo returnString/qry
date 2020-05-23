@@ -2,7 +2,7 @@ use super::{Connection, ConnectionImpl, SqlError};
 use crate::runtime::Value;
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
-use rusqlite::{Connection as SqliteConnection, Error as SqliteError};
+use rusqlite::{Connection as SqliteConnection, Error as SqliteError, NO_PARAMS};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -12,7 +12,11 @@ struct SqliteConnectionImpl {
 
 impl ConnectionImpl for SqliteConnectionImpl {
 	fn collect(&self, query: &str) -> Result<RecordBatch, SqlError> {
-		let stmt = self.conn.prepare(query)?;
+		let mut stmt = self.conn.prepare(query)?;
+		let mut rows = stmt.query(NO_PARAMS)?;
+
+		while let Some(row) = rows.next()? {}
+
 		Ok(RecordBatch::try_new(Arc::new(Schema::empty()), vec![])?)
 	}
 }

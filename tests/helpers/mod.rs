@@ -1,7 +1,7 @@
 use qry::lang::parse;
-use qry::runtime::{eval, InterpreterError, InterpreterState, Value};
+use qry::runtime::{eval, EvalResult, InterpreterError, InterpreterState, Value};
 
-pub fn eval_src(src: &str) -> Result<Value, InterpreterError> {
+pub fn eval_src(src: &str) -> EvalResult {
 	let expr = parse(src).unwrap_or_else(|err| panic!("parse failed ({}): {:?}", src, err));
 	let mut state = InterpreterState::new();
 	eval(&mut state, &expr)

@@ -53,16 +53,14 @@ pub enum InterpreterError {
 	MethodNotImplemented,
 }
 
-pub fn assign_value(
-	ctx: &EvalContext,
-	name: &str,
-	value: Value,
-) -> Result<Value, InterpreterError> {
+pub type EvalResult = Result<Value, InterpreterError>;
+
+pub fn assign_value(ctx: &EvalContext, name: &str, value: Value) -> EvalResult {
 	ctx.env.borrow_mut().update(name, value.clone());
 	Ok(value)
 }
 
-fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> Result<Value, InterpreterError> {
+fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult {
 	match dest {
 		Syntax::Ident(name) => {
 			let value = eval_in_env(ctx, src)?;
@@ -72,11 +70,7 @@ fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> Result<Value, 
 	}
 }
 
-fn eval_unop(
-	ctx: &EvalContext,
-	target: &Syntax,
-	op: UnaryOperator,
-) -> Result<Value, InterpreterError> {
+fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResult {
 	stdlib::ops::UNOP_LOOKUP.with(|m| {
 		if let Some(method) = m.get(&op) {
 			method
@@ -88,12 +82,7 @@ fn eval_unop(
 	})
 }
 
-fn eval_binop(
-	ctx: &EvalContext,
-	lhs: &Syntax,
-	rhs: &Syntax,
-	op: BinaryOperator,
-) -> Result<Value, InterpreterError> {
+fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator) -> EvalResult {
 	match op {
 		BinaryOperator::LAssign => eval_assign(ctx, lhs, rhs),
 		BinaryOperator::RAssign => eval_assign(ctx, rhs, lhs),
@@ -151,11 +140,7 @@ fn resolve_lib(
 	Ok(current_env)
 }
 
-fn eval_import(
-	ctx: &EvalContext,
-	from: &[String],
-	import: &Import,
-) -> Result<Value, InterpreterError> {
+fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResult {
 	let lib_env = resolve_lib(ctx.library_env.clone(), from)?;
 
 	match import {
@@ -188,7 +173,7 @@ impl EvalContext {
 	}
 }
 
-pub fn eval_in_env_multi(ctx: &EvalContext, exprs: &[Syntax]) -> Result<Value, InterpreterError> {
+pub fn eval_in_env_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult {
 	let mut ret = Value::Null(());
 	for expr in exprs {
 		ret = eval_in_env(ctx, expr)?;
@@ -196,7 +181,7 @@ pub fn eval_in_env_multi(ctx: &EvalContext, exprs: &[Syntax]) -> Result<Value, I
 	Ok(ret)
 }
 
-pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> Result<Value, InterpreterError> {
+pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 	match expr {
 		Syntax::Int(val) => Ok(Value::Int(*val)),
 		Syntax::Float(val) => Ok(Value::Float(*val)),
@@ -233,6 +218,6 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> Result<Value, Interprete
 	}
 }
 
-pub fn eval(state: &mut InterpreterState, exprs: &[Syntax]) -> Result<Value, InterpreterError> {
+pub fn eval(state: &mut InterpreterState, exprs: &[Syntax]) -> EvalResult {
 	eval_in_env_multi(&state.root_eval_context(), exprs)
 }

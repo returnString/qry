@@ -1,4 +1,6 @@
-use super::{Callable, EvalContext, InterpreterError, Parameter, Signature, Type, Value};
+use super::{
+	Callable, EvalContext, EvalResult, InterpreterError, Parameter, Signature, Type, Value,
+};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -79,7 +81,7 @@ impl Callable for Method {
 		ctx: &EvalContext,
 		args: &[(&String, Value)],
 		named_trailing: &[(&String, Value)],
-	) -> Result<Value, InterpreterError> {
+	) -> EvalResult {
 		let arg_types = args
 			.iter()
 			.map(|(_, a)| a.runtime_type())

@@ -1,4 +1,4 @@
-use super::{Callable, EvalContext, InterpreterError, Signature, Value};
+use super::{Callable, EvalContext, EvalResult, Signature, Value};
 use std::fmt::Debug;
 use std::rc::Rc;
 
@@ -33,12 +33,7 @@ impl Callable for Builtin {
 		&self.signature
 	}
 
-	fn call(
-		&self,
-		_: &EvalContext,
-		args: &[(&String, Value)],
-		_: &[(&String, Value)],
-	) -> Result<Value, InterpreterError> {
+	fn call(&self, _: &EvalContext, args: &[(&String, Value)], _: &[(&String, Value)]) -> EvalResult {
 		let unnamed_args = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
 		Ok((self.func)(&unnamed_args))
 	}

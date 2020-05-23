@@ -1,4 +1,4 @@
-use super::{eval_in_env, EvalContext, InterpreterError, Type, Value};
+use super::{eval_in_env, EvalContext, EvalResult, InterpreterError, Type, Value};
 use crate::lang::Syntax;
 
 #[derive(Debug, Clone)]
@@ -42,14 +42,14 @@ pub trait Callable {
 		ctx: &EvalContext,
 		args: &[(&String, Value)],
 		named_varargs: &[(&String, Value)],
-	) -> Result<Value, InterpreterError>;
+	) -> EvalResult;
 }
 
 pub fn eval_callable(
 	ctx: &EvalContext,
 	callable: &impl Callable,
 	positional: &[Syntax],
-) -> Result<Value, InterpreterError> {
+) -> EvalResult {
 	let sig = callable.signature();
 	if positional.len() != sig.params.len() {
 		return Err(InterpreterError::ArgMismatch);

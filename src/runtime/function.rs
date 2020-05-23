@@ -1,5 +1,5 @@
 use super::{
-	assign_value, eval_in_env, eval_in_env_multi, Callable, EnvironmentPtr, EvalContext,
+	assign_value, eval_in_env, eval_in_env_multi, Callable, EnvironmentPtr, EvalContext, EvalResult,
 	InterpreterError, Parameter, Signature, Value,
 };
 use crate::lang::{ParameterDef, Syntax};
@@ -18,7 +18,7 @@ pub fn eval_function(
 	params: &[ParameterDef],
 	return_type: &Syntax,
 	body: &[Syntax],
-) -> Result<Value, InterpreterError> {
+) -> EvalResult {
 	let param_types = params
 		.iter()
 		.map(|p| match eval_in_env(ctx, &p.param_type)? {
@@ -67,7 +67,7 @@ impl Callable for Function {
 		ctx: &EvalContext,
 		args: &[(&String, Value)],
 		_: &[(&String, Value)],
-	) -> Result<Value, InterpreterError> {
+	) -> EvalResult {
 		let func_body_env = self.env.borrow().child("funceval");
 
 		for (name, value) in args {
