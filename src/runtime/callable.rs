@@ -16,20 +16,20 @@ pub struct Signature {
 }
 
 impl Signature {
-	pub fn returning(return_type: Type) -> Self {
+	pub fn returning(return_type: &Type) -> Self {
 		Self {
-			return_type,
+			return_type: return_type.clone(),
 			params: Vec::new(),
 			with_trailing: false,
 			with_named_trailing: false,
 		}
 	}
 
-	pub fn param(&self, name: &str, param_type: Type) -> Self {
+	pub fn param(&self, name: &str, param_type: &Type) -> Self {
 		let mut ret = self.clone();
 		ret.params.push(Parameter {
 			name: name.into(),
-			param_type,
+			param_type: param_type.clone(),
 		});
 		ret
 	}

@@ -65,6 +65,13 @@ impl Value {
 
 		panic!("value is not a native type");
 	}
+
+	pub fn as_string(&self) -> &str {
+		match self {
+			Self::String(s) => s,
+			_ => panic!("value is not a string"),
+		}
+	}
 }
 
 // FIXME: only used for unit tests
