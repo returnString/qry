@@ -11,7 +11,12 @@ struct SqliteConnectionImpl {
 }
 
 impl ConnectionImpl for SqliteConnectionImpl {
-	fn collect(&self, query: &str) -> Result<RecordBatch, SqlError> {
+	fn execute(&self, sql: &str) -> SqlResult<i64> {
+		let rows = self.conn.execute(sql, NO_PARAMS)?;
+		Ok(rows as i64)
+	}
+
+	fn collect(&self, query: &str) -> SqlResult<RecordBatch> {
 		let mut stmt = self.conn.prepare(query)?;
 		let mut rows = stmt.query(NO_PARAMS)?;
 
@@ -37,10 +42,10 @@ fn sqlite_connect_impl(connstring: &str) -> SqlResult<SqliteConnection> {
 	Ok(SqliteConnection::open(connstring)?)
 }
 
-pub fn connect_sqlite(_: &[Value]) -> EvalResult {
-	//let connstring = args[0].as_string();
-	let connstring = ":memory:";
+pub fn connect_sqlite(args: &[Value]) -> EvalResult {
+	let connstring = args[0].as_string();
 	let sqlite_conn = sqlite_connect_impl(connstring)?;
+
 	Ok(Value::Native(Rc::new(Connection {
 		driver: "sqlite".into(),
 		conn_impl: Box::new(SqliteConnectionImpl { conn: sqlite_conn }),

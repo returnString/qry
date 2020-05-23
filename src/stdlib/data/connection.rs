@@ -10,7 +10,8 @@ pub enum SqlError {
 }
 
 pub trait ConnectionImpl {
-	fn collect(&self, sql: &str) -> Result<RecordBatch, SqlError>;
+	fn execute(&self, sql: &str) -> SqlResult<i64>;
+	fn collect(&self, sql: &str) -> SqlResult<RecordBatch>;
 }
 
 pub struct Connection {

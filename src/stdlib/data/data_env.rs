@@ -18,6 +18,20 @@ pub fn env() -> EnvironmentPtr {
 		);
 
 		env.update(
+			"execute",
+			Builtin::new_value(
+				Signature::returning(&Type::Int)
+					.param("connection", connection_type)
+					.param("query", &Type::String),
+				|args| {
+					let conn = args[0].as_native::<Connection>();
+					let query = args[1].as_string();
+					Ok(Value::Int(conn.conn_impl.execute(query)?))
+				},
+			),
+		);
+
+		env.update(
 			"collect",
 			Builtin::new_value(
 				Signature::returning(&Type::Null).param("connection", connection_type),
