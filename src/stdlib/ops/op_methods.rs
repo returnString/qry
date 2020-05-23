@@ -156,6 +156,7 @@ thread_local! {
 
 		{
 			let mut to_string = to_string.borrow_mut();
+			to_string.register(unop!(Null, String, |_| "null".into()));
 			to_string.register(unop!(String, String, |a| a));
 			to_string.register(unop!(Int, String, |a: i64| a.to_string().into_boxed_str()));
 			to_string.register(unop!(Float, String, |a: f64| a.to_string().into_boxed_str()));

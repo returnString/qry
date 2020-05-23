@@ -163,7 +163,7 @@ fn eval_import(
 		Import::Wildcard => lib_env.borrow().copy_to(&mut ctx.env.borrow_mut()),
 	}
 
-	Ok(Value::Null)
+	Ok(Value::Null(()))
 }
 
 pub struct EvalContext {
@@ -181,7 +181,7 @@ impl EvalContext {
 }
 
 pub fn eval_in_env_multi(ctx: &EvalContext, exprs: &[Syntax]) -> Result<Value, InterpreterError> {
-	let mut ret = Value::Null;
+	let mut ret = Value::Null(());
 	for expr in exprs {
 		ret = eval_in_env(ctx, expr)?;
 	}
@@ -194,7 +194,7 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> Result<Value, Interprete
 		Syntax::Float(val) => Ok(Value::Float(*val)),
 		Syntax::String(val) => Ok(Value::String(val.clone().into_boxed_str())),
 		Syntax::Bool(val) => Ok(Value::Bool(*val)),
-		Syntax::Null => Ok(Value::Null),
+		Syntax::Null => Ok(Value::Null(())),
 		Syntax::BinaryOp { lhs, rhs, op } => eval_binop(ctx, lhs, rhs, *op),
 		Syntax::UnaryOp { target, op } => eval_unop(ctx, target, *op),
 		Syntax::Function {

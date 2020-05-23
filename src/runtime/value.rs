@@ -23,7 +23,7 @@ pub enum Type {
 
 #[derive(Debug, Clone)]
 pub enum Value {
-	Null,
+	Null(()),
 	Int(i64),
 	Float(f64),
 	Bool(bool),
@@ -40,7 +40,7 @@ pub enum Value {
 impl Value {
 	pub fn runtime_type(&self) -> Type {
 		match self {
-			Self::Null => Type::Null,
+			Self::Null(_) => Type::Null,
 			Self::Int(_) => Type::Int,
 			Self::Float(_) => Type::Float,
 			Self::Bool(_) => Type::Bool,
@@ -72,7 +72,7 @@ impl Value {
 impl PartialEq<Value> for Value {
 	fn eq(&self, other: &Value) -> bool {
 		match (self, &other) {
-			(Value::Null, Value::Null) => true,
+			(Value::Null(_), Value::Null(_)) => true,
 			(Value::Int(a), Value::Int(b)) => a == b,
 			(Value::Float(a), Value::Float(b)) => a == b,
 			(Value::Bool(a), Value::Bool(b)) => a == b,

@@ -29,6 +29,7 @@ fn test_methods() {
 		("to_string(1.5)", Value::String("1.5".into())),
 		("to_string(true)", Value::String("true".into())),
 		("to_string(false)", Value::String("false".into())),
+		("to_string(null)", Value::String("null".into())),
 	]);
 }
 

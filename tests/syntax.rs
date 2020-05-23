@@ -7,7 +7,7 @@ fn test_syntax() {
 	helpers::eval_expect_values(&[
 		("1", Value::Int(1)),
 		("4.5", Value::Float(4.5)),
-		("null", Value::Null),
+		("null", Value::Null(())),
 		("true", Value::Bool(true)),
 		("false", Value::Bool(false)),
 		("\"mystr\"", Value::String("mystr".into())),
