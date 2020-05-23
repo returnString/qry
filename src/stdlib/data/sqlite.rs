@@ -1,5 +1,5 @@
-use super::{Connection, ConnectionImpl, SqlError};
-use crate::runtime::Value;
+use super::{Connection, ConnectionImpl, SqlError, SqlResult};
+use crate::runtime::{EvalResult, InterpreterError, Value};
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 use rusqlite::{Connection as SqliteConnection, Error as SqliteError, NO_PARAMS};
@@ -27,16 +27,22 @@ impl From<SqliteError> for SqlError {
 	}
 }
 
-pub fn connect_sqlite(_: &[Value]) -> Value {
+impl From<SqlError> for InterpreterError {
+	fn from(err: SqlError) -> Self {
+		InterpreterError::UserCodeError(format!("{:?}", err))
+	}
+}
+
+fn sqlite_connect_impl(connstring: &str) -> SqlResult<SqliteConnection> {
+	Ok(SqliteConnection::open(connstring)?)
+}
+
+pub fn connect_sqlite(_: &[Value]) -> EvalResult {
 	//let connstring = args[0].as_string();
 	let connstring = ":memory:";
-	let sqlite_conn = match SqliteConnection::open(connstring) {
-		Ok(conn) => conn,
-		Err(err) => panic!("failed to open sqlite db: {:?}", err),
-	};
-
-	Value::Native(Rc::new(Connection {
+	let sqlite_conn = sqlite_connect_impl(connstring)?;
+	Ok(Value::Native(Rc::new(Connection {
 		driver: "sqlite".into(),
 		conn_impl: Box::new(SqliteConnectionImpl { conn: sqlite_conn }),
-	}))
+	})))
 }

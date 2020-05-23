@@ -1,6 +1,8 @@
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
 
+pub type SqlResult<T> = Result<T, SqlError>;
+
 #[derive(Debug)]
 pub enum SqlError {
 	ArrowError(ArrowError),

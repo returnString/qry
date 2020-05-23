@@ -51,6 +51,7 @@ pub enum InterpreterError {
 	NotFound(String),
 	ArgMismatch,
 	MethodNotImplemented,
+	UserCodeError(String),
 }
 
 pub type EvalResult = Result<Value, InterpreterError>;

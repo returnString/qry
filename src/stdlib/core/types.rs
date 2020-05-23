@@ -1,13 +1,15 @@
-use crate::runtime::{Builtin, Environment, EnvironmentPtr, Parameter, Signature, Type, Value};
+use crate::runtime::{
+	Builtin, Environment, EnvironmentPtr, EvalResult, Parameter, Signature, Type, Value,
+};
 use crate::stdlib::ops::RUNTIME_OPS;
 
-fn typeof_func(args: &[Value]) -> Value {
+fn typeof_func(args: &[Value]) -> EvalResult {
 	let target = &args[0];
-	Value::Type(target.runtime_type())
+	Ok(Value::Type(target.runtime_type()))
 }
 
-fn parse_func(args: &[Value]) -> Value {
-	args[0].clone()
+fn parse_func(args: &[Value]) -> EvalResult {
+	Ok(args[0].clone())
 }
 
 pub fn env() -> EnvironmentPtr {

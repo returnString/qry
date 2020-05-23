@@ -27,7 +27,7 @@ pub fn env() -> EnvironmentPtr {
 						Ok(_) => println!("got batch"),
 						Err(err) => println!("execute failed: {:?}", err),
 					};
-					Value::Null(())
+					Ok(Value::Null(()))
 				},
 			),
 		);
@@ -38,9 +38,9 @@ pub fn env() -> EnvironmentPtr {
 		to_string.register(Builtin::new(
 			Signature::returning(&Type::String).param("obj", connection_type),
 			|args| {
-				Value::String(
+				Ok(Value::String(
 					format!("Connection: {}", args[0].as_native::<Connection>().driver).into_boxed_str(),
-				)
+				))
 			},
 		));
 	});
