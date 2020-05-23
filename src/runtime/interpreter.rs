@@ -32,6 +32,13 @@ impl InterpreterState {
 			library_env: library_env_ptr,
 		}
 	}
+
+	pub fn root_eval_context(&self) -> EvalContext {
+		EvalContext {
+			env: self.global_env.clone(),
+			library_env: self.library_env.clone(),
+		}
+	}
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -227,10 +234,5 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> Result<Value, Interprete
 }
 
 pub fn eval(state: &mut InterpreterState, exprs: &[Syntax]) -> Result<Value, InterpreterError> {
-	let ctx = EvalContext {
-		env: state.global_env.clone(),
-		library_env: state.library_env.clone(),
-	};
-
-	eval_in_env_multi(&ctx, exprs)
+	eval_in_env_multi(&state.root_eval_context(), exprs)
 }
