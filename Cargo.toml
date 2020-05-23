@@ -1,0 +1,13 @@
+[package]
+name = "qry"
+version = "0.1.0"
+authors = ["Ruan Pearce-Authers <ruanpa@outlook.com>"]
+edition = "2018"
+
+[dependencies]
+peg = "0.6.2"
+rustyline = "6.1.2"
+
+[[bin]]
+name = "qry"
+path = "src/cli/main.rs"
