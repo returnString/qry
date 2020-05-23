@@ -25,7 +25,7 @@ impl InterpreterState {
 
 		add_lib(stdlib::core::env(), true);
 		add_lib(stdlib::ops::env(), false);
-		add_lib(stdlib::data::data_module(), false);
+		add_lib(stdlib::data::env(), false);
 
 		InterpreterState {
 			global_env: global_env_ptr,
