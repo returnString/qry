@@ -1,22 +1,31 @@
-use super::{Connection, SqlMetadata, SqlResult};
+use super::{expr_to_sql, Connection, SqlMetadata, SqlResult};
+use crate::lang::Syntax;
+use crate::runtime::EvalContext;
 use arrow::record_batch::RecordBatch;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicI64, Ordering};
 
+#[derive(Clone)]
 pub struct QueryPipeline {
 	conn: Rc<Connection>,
-	steps: Vec<Box<dyn PipelineStep>>,
+	steps: Vec<Rc<dyn PipelineStep>>,
 }
 
 impl QueryPipeline {
 	pub fn new(conn: Rc<Connection>, table: &str) -> Self {
 		QueryPipeline {
 			conn,
-			steps: vec![Box::new(FromStep {
+			steps: vec![Rc::new(FromStep {
 				table: table.to_string(),
 			})],
 		}
+	}
+
+	pub fn add(&self, step: Rc<dyn PipelineStep>) -> QueryPipeline {
+		let mut ret = self.clone();
+		ret.steps.push(step);
+		ret
 	}
 
 	pub fn collect(&self) -> SqlResult<RecordBatch> {
@@ -64,10 +73,11 @@ impl RenderState {
 	}
 }
 
-trait PipelineStep {
+pub trait PipelineStep {
 	fn render(&self, state: RenderState) -> SqlResult<RenderState>;
 }
 
+#[derive(Clone)]
 pub struct FromStep {
 	table: String,
 }
@@ -79,6 +89,23 @@ impl PipelineStep for FromStep {
 		let select = column_names.join(", ");
 		Ok(state.wrap(metadata, |_| {
 			format!("select {} from {}", select, self.table)
+		}))
+	}
+}
+
+#[derive(Clone)]
+pub struct FilterStep {
+	pub ctx: EvalContext,
+	pub predicate: Syntax,
+}
+
+impl PipelineStep for FilterStep {
+	fn render(&self, state: RenderState) -> SqlResult<RenderState> {
+		let predicate = expr_to_sql(&self.ctx, &self.predicate, &state.metadata)?;
+		let column_names = state.metadata.col_types.keys().cloned().collect::<Vec<_>>();
+		let select = column_names.join(", ");
+		Ok(state.wrap(state.metadata.clone(), |sub| {
+			format!("select {} from {} where {}", select, sub, predicate.text)
 		}))
 	}
 }

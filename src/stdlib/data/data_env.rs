@@ -1,4 +1,4 @@
-use super::{connect_sqlite, df_to_string, Connection, DataFrame, QueryPipeline};
+use super::{connect_sqlite, df_to_string, Connection, DataFrame, FilterStep, QueryPipeline};
 use crate::runtime::{Builtin, Environment, EnvironmentPtr, Signature, Type, Value};
 use crate::stdlib::ops::RUNTIME_OPS;
 use std::any::TypeId;
@@ -57,6 +57,24 @@ pub fn env() -> EnvironmentPtr {
 					let batch = pipeline.collect()?;
 					let df = DataFrame::new(vec![batch]);
 					Ok(Value::Native(Rc::new(df)))
+				},
+			),
+		);
+
+		env.update(
+			"filter",
+			Builtin::new_value(
+				Signature::returning(pipeline_type)
+					.param("pipeline", pipeline_type)
+					.param("expr", &Type::SyntaxPlaceholder),
+				|ctx, args| {
+					let pipeline = args[0].as_native::<QueryPipeline>();
+					let predicate = args[1].as_syntax();
+					let step = FilterStep {
+						ctx: ctx.clone(),
+						predicate: predicate.clone(),
+					};
+					Ok(Value::Native(Rc::new(pipeline.add(Rc::new(step)))))
 				},
 			),
 		);

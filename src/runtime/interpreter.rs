@@ -2,45 +2,6 @@ use super::{eval_callable, eval_function, Callable, Environment, EnvironmentPtr,
 use crate::lang::syntax::*;
 use crate::stdlib;
 
-#[derive(Default)]
-pub struct InterpreterState {
-	global_env: EnvironmentPtr,
-	library_env: EnvironmentPtr,
-}
-
-impl InterpreterState {
-	pub fn new() -> Self {
-		let global_env_ptr = Environment::new("global");
-		let library_env_ptr = Environment::new("libraries");
-
-		let add_lib = |env_ptr: EnvironmentPtr, add_to_global| {
-			let lib_val = Value::Library(env_ptr.clone());
-			let env = env_ptr.borrow();
-			library_env_ptr.borrow_mut().update(env.name(), lib_val);
-
-			if add_to_global {
-				env.copy_to(&mut global_env_ptr.borrow_mut());
-			}
-		};
-
-		add_lib(stdlib::core::env(), true);
-		add_lib(stdlib::ops::env(), false);
-		add_lib(stdlib::data::env(), false);
-
-		InterpreterState {
-			global_env: global_env_ptr,
-			library_env: library_env_ptr,
-		}
-	}
-
-	pub fn root_eval_context(&self) -> EvalContext {
-		EvalContext {
-			env: self.global_env.clone(),
-			library_env: self.library_env.clone(),
-		}
-	}
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum InterpreterError {
 	UnhandledSyntax,
@@ -160,12 +121,37 @@ fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResul
 	Ok(Value::Null(()))
 }
 
+#[derive(Default, Clone)]
 pub struct EvalContext {
 	pub env: EnvironmentPtr,
 	pub library_env: EnvironmentPtr,
 }
 
 impl EvalContext {
+	pub fn new() -> Self {
+		let global_env_ptr = Environment::new("global");
+		let library_env_ptr = Environment::new("libraries");
+
+		let add_lib = |env_ptr: EnvironmentPtr, add_to_global| {
+			let lib_val = Value::Library(env_ptr.clone());
+			let env = env_ptr.borrow();
+			library_env_ptr.borrow_mut().update(env.name(), lib_val);
+
+			if add_to_global {
+				env.copy_to(&mut global_env_ptr.borrow_mut());
+			}
+		};
+
+		add_lib(stdlib::core::env(), true);
+		add_lib(stdlib::ops::env(), false);
+		add_lib(stdlib::data::env(), false);
+
+		EvalContext {
+			env: global_env_ptr,
+			library_env: library_env_ptr,
+		}
+	}
+
 	pub fn child(&self, env_ptr: EnvironmentPtr) -> EvalContext {
 		EvalContext {
 			library_env: self.library_env.clone(),
@@ -219,6 +205,6 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 	}
 }
 
-pub fn eval(state: &mut InterpreterState, exprs: &[Syntax]) -> EvalResult {
-	eval_in_env_multi(&state.root_eval_context(), exprs)
+pub fn eval(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult {
+	eval_in_env_multi(&ctx, exprs)
 }

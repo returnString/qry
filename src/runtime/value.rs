@@ -72,6 +72,13 @@ impl Value {
 			_ => panic!("value is not a string"),
 		}
 	}
+
+	pub fn as_syntax(&self) -> &Syntax {
+		match self {
+			Self::Syntax(expr) => expr,
+			_ => panic!("value is not an expression"),
+		}
+	}
 }
 
 // FIXME: only used for unit tests

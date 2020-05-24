@@ -1,10 +1,9 @@
 use qry::lang::parse;
-use qry::runtime::{eval, EvalResult, InterpreterError, InterpreterState, Value};
+use qry::runtime::{eval, EvalContext, EvalResult, InterpreterError, Value};
 
 pub fn eval_src(src: &str) -> EvalResult {
 	let expr = parse(src).unwrap_or_else(|err| panic!("parse failed ({}): {:?}", src, err));
-	let mut state = InterpreterState::new();
-	eval(&mut state, &expr)
+	eval(&EvalContext::new(), &expr)
 }
 
 pub fn eval_expect_values(cases: &[(&str, Value)]) {

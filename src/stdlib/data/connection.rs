@@ -1,3 +1,4 @@
+use crate::runtime::InterpreterError;
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
 use std::collections::HashMap;
@@ -8,6 +9,20 @@ pub type SqlResult<T> = Result<T, SqlError>;
 pub enum SqlError {
 	ArrowError(ArrowError),
 	UnknownError(String),
+	SyntaxError,
+	EvalError(InterpreterError),
+}
+
+impl From<SqlError> for InterpreterError {
+	fn from(err: SqlError) -> Self {
+		InterpreterError::UserCodeError(format!("{:?}", err))
+	}
+}
+
+impl From<InterpreterError> for SqlError {
+	fn from(err: InterpreterError) -> Self {
+		SqlError::EvalError(err)
+	}
 }
 
 #[derive(Debug, Clone, Copy)]

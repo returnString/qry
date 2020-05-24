@@ -1,5 +1,5 @@
 use super::{Connection, ConnectionImpl, SqlError, SqlMetadata, SqlResult, SqlType};
-use crate::runtime::{EvalContext, EvalResult, InterpreterError, Value};
+use crate::runtime::{EvalContext, EvalResult, Value};
 use arrow::array::{ArrayBuilder, BooleanBuilder, Float64Builder, Int64Builder, StringBuilder};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
@@ -156,12 +156,6 @@ impl ConnectionImpl for SqliteConnectionImpl {
 impl From<SqliteError> for SqlError {
 	fn from(err: SqliteError) -> Self {
 		SqlError::UnknownError(format!("{}", err))
-	}
-}
-
-impl From<SqlError> for InterpreterError {
-	fn from(err: SqlError) -> Self {
-		InterpreterError::UserCodeError(format!("{:?}", err))
 	}
 }
 

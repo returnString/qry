@@ -15,8 +15,16 @@ fn with_table_bootstrap(query: &str) -> String {
 
 #[test]
 fn test_data_sqlite() {
-	helpers::eval_expect_values(&[(
-		&with_table_bootstrap("num_rows(collect(table(conn, \"test_table\")))"),
-		Value::Int(4),
-	)]);
+	helpers::eval_expect_values(&[
+		(
+			&with_table_bootstrap("num_rows(collect(table(conn, \"test_table\")))"),
+			Value::Int(4),
+		),
+		(
+			&with_table_bootstrap(
+				"num_rows(collect(filter(table(conn, \"test_table\"), name == \"ruan\")))",
+			),
+			Value::Int(1),
+		),
+	]);
 }
