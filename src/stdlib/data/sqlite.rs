@@ -1,13 +1,27 @@
 use super::{Connection, ConnectionImpl, SqlError, SqlResult};
 use crate::runtime::{EvalResult, InterpreterError, Value};
-use arrow::datatypes::Schema;
+use arrow::array::{ArrayBuilder, Int64Builder};
+use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use rusqlite::{Connection as SqliteConnection, Error as SqliteError, NO_PARAMS};
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
 struct SqliteConnectionImpl {
 	conn: SqliteConnection,
+}
+
+fn box_builder<T>(builder: T) -> Rc<RefCell<dyn ArrayBuilder>>
+where
+	T: ArrayBuilder,
+{
+	Rc::new(RefCell::new(builder))
+}
+
+#[derive(Clone, Copy)]
+enum SqliteType {
+	Int,
 }
 
 impl ConnectionImpl for SqliteConnectionImpl {
@@ -18,11 +32,49 @@ impl ConnectionImpl for SqliteConnectionImpl {
 
 	fn collect(&self, query: &str) -> SqlResult<RecordBatch> {
 		let mut stmt = self.conn.prepare(query)?;
+
+		let builders = stmt
+			.columns()
+			.iter()
+			.map(|c| match c.decl_type() {
+				// TODO: need to replace this with affinities
+				Some(col_type) => match col_type {
+					"integer" => (
+						c.name().to_string(),
+						SqliteType::Int,
+						box_builder(Int64Builder::new(0)),
+					),
+					_ => panic!("unhandled column type: {}", col_type),
+				},
+				None => panic!("column has no type: {}", c.name()),
+			})
+			.collect::<Vec<_>>();
+
 		let mut rows = stmt.query(NO_PARAMS)?;
+		while let Some(row) = rows.next()? {
+			for (col_idx, (_, col_type, builder)) in builders.iter().enumerate() {
+				match col_type {
+					SqliteType::Int => builder
+						.borrow_mut()
+						.as_any_mut()
+						.downcast_mut::<Int64Builder>()
+						.unwrap()
+						.append_value(row.get(col_idx)?)?,
+				}
+			}
+		}
 
-		while let Some(row) = rows.next()? {}
+		let fields = builders
+			.iter()
+			.map(|(n, _, _)| Field::new(n, DataType::Int64, true))
+			.collect();
 
-		Ok(RecordBatch::try_new(Arc::new(Schema::empty()), vec![])?)
+		let cols = builders
+			.iter()
+			.map(|(_, _, b)| b.borrow_mut().finish())
+			.collect();
+
+		Ok(RecordBatch::try_new(Arc::new(Schema::new(fields)), cols)?)
 	}
 }
 

@@ -34,13 +34,13 @@ pub fn env() -> EnvironmentPtr {
 		env.update(
 			"collect",
 			Builtin::new_value(
-				Signature::returning(&Type::Null).param("connection", connection_type),
+				Signature::returning(&Type::Null)
+					.param("connection", connection_type)
+					.param("query", &Type::String),
 				|args| {
 					let conn = args[0].as_native::<Connection>();
-					match conn.conn_impl.collect("select * from test_table") {
-						Ok(_) => println!("got batch"),
-						Err(err) => println!("execute failed: {:?}", err),
-					};
+					let query = args[1].as_string();
+					conn.conn_impl.collect(query)?;
 					Ok(Value::Null(()))
 				},
 			),
