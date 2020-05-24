@@ -18,15 +18,15 @@ pub enum SqlType {
 	String,
 }
 
-#[derive(Debug)]
-pub struct SqlTableMetadata {
+#[derive(Debug, Clone)]
+pub struct SqlMetadata {
 	pub col_types: HashMap<String, SqlType>,
 }
 
 pub trait ConnectionImpl {
-	fn get_table_metadata(&self, table: &str) -> SqlResult<SqlTableMetadata>;
+	fn get_table_metadata(&self, table: &str) -> SqlResult<SqlMetadata>;
 	fn execute(&self, sql: &str) -> SqlResult<i64>;
-	fn collect(&self, sql: &str) -> SqlResult<RecordBatch>;
+	fn collect(&self, sql: &str, result_metadata: SqlMetadata) -> SqlResult<RecordBatch>;
 }
 
 pub struct Connection {

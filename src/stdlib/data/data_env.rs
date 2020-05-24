@@ -1,10 +1,12 @@
-use super::{connect_sqlite, Connection};
+use super::{connect_sqlite, print_batch, Connection, QueryPipeline};
 use crate::runtime::{Builtin, Environment, EnvironmentPtr, Signature, Type, Value};
 use crate::stdlib::ops::RUNTIME_OPS;
 use std::any::TypeId;
+use std::rc::Rc;
 
 pub fn env() -> EnvironmentPtr {
 	let connection_type = &Type::Native(TypeId::of::<Connection>());
+	let pipeline_type = &Type::Native(TypeId::of::<QueryPipeline>());
 
 	let env = Environment::new("data");
 	{
@@ -32,15 +34,27 @@ pub fn env() -> EnvironmentPtr {
 		);
 
 		env.update(
-			"collect",
+			"table",
 			Builtin::new_value(
-				Signature::returning(&Type::Null)
+				Signature::returning(pipeline_type)
 					.param("connection", connection_type)
-					.param("query", &Type::String),
+					.param("table", &Type::String),
 				|args| {
 					let conn = args[0].as_native::<Connection>();
-					let query = args[1].as_string();
-					conn.conn_impl.collect(query)?;
+					let table = args[1].as_string();
+					Ok(Value::Native(Rc::new(QueryPipeline::new(conn, table))))
+				},
+			),
+		);
+
+		env.update(
+			"collect",
+			Builtin::new_value(
+				Signature::returning(&Type::Null).param("pipeline", pipeline_type),
+				|args| {
+					let pipeline = args[0].as_native::<QueryPipeline>();
+					let result = pipeline.collect()?;
+					print_batch(&result);
 					Ok(Value::Null(()))
 				},
 			),

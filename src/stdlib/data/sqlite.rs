@@ -1,6 +1,6 @@
-use super::{Connection, ConnectionImpl, SqlError, SqlResult, SqlTableMetadata, SqlType};
+use super::{Connection, ConnectionImpl, SqlError, SqlMetadata, SqlResult, SqlType};
 use crate::runtime::{EvalResult, InterpreterError, Value};
-use arrow::array::{ArrayBuilder, Int64Builder};
+use arrow::array::{ArrayBuilder, BooleanBuilder, Float64Builder, Int64Builder, StringBuilder};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use lazy_static::lazy_static;
@@ -31,7 +31,7 @@ lazy_static! {
 }
 
 impl ConnectionImpl for SqliteConnectionImpl {
-	fn get_table_metadata(&self, table: &str) -> SqlResult<SqlTableMetadata> {
+	fn get_table_metadata(&self, table: &str) -> SqlResult<SqlMetadata> {
 		let names_query = format!("select * from {} limit 0", table);
 		let stmt = self.conn.prepare(&names_query)?;
 
@@ -46,7 +46,7 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		let mut stmt = self.conn.prepare(&type_query)?;
 		let mut rows = stmt.query(NO_PARAMS)?;
 
-		let mut metadata = SqlTableMetadata {
+		let mut metadata = SqlMetadata {
 			col_types: HashMap::new(),
 		};
 
@@ -66,29 +66,28 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		Ok(rows as i64)
 	}
 
-	fn collect(&self, query: &str) -> SqlResult<RecordBatch> {
+	fn collect(&self, query: &str, result_metadata: SqlMetadata) -> SqlResult<RecordBatch> {
 		let mut stmt = self.conn.prepare(query)?;
 
-		let builders = stmt
+		let col_metadata = stmt
 			.columns()
 			.iter()
-			.map(|c| match c.decl_type() {
-				// TODO: need to replace this with affinities
-				Some(col_type) => match col_type {
-					"integer" => (
-						c.name().to_string(),
-						SqlType::Int,
-						box_builder(Int64Builder::new(0)),
-					),
-					_ => panic!("unhandled column type: {}", col_type),
-				},
-				None => panic!("column has no type: {}", c.name()),
+			.map(|c| (c.name().to_string(), result_metadata.col_types[c.name()]))
+			.collect::<Vec<_>>();
+
+		let builders = col_metadata
+			.iter()
+			.map(|(_, c)| match c {
+				SqlType::Int => box_builder(Int64Builder::new(0)),
+				SqlType::Float => box_builder(Float64Builder::new(0)),
+				SqlType::Bool => box_builder(BooleanBuilder::new(0)),
+				SqlType::String => box_builder(StringBuilder::new(0)),
 			})
 			.collect::<Vec<_>>();
 
 		let mut rows = stmt.query(NO_PARAMS)?;
 		while let Some(row) = rows.next()? {
-			for (col_idx, (_, col_type, builder)) in builders.iter().enumerate() {
+			for (col_idx, (builder, (_, col_type))) in builders.iter().zip(&col_metadata).enumerate() {
 				match col_type {
 					SqlType::Int => builder
 						.borrow_mut()
@@ -96,21 +95,45 @@ impl ConnectionImpl for SqliteConnectionImpl {
 						.downcast_mut::<Int64Builder>()
 						.unwrap()
 						.append_value(row.get(col_idx)?)?,
-					_ => panic!("unhandled internal column type: {:?}", col_type),
+					SqlType::Float => builder
+						.borrow_mut()
+						.as_any_mut()
+						.downcast_mut::<Float64Builder>()
+						.unwrap()
+						.append_value(row.get(col_idx)?)?,
+					SqlType::Bool => builder
+						.borrow_mut()
+						.as_any_mut()
+						.downcast_mut::<BooleanBuilder>()
+						.unwrap()
+						.append_value(row.get(col_idx)?)?,
+					SqlType::String => builder
+						.borrow_mut()
+						.as_any_mut()
+						.downcast_mut::<StringBuilder>()
+						.unwrap()
+						.append_value(&row.get::<usize, String>(col_idx)?)?,
 				}
 			}
 		}
 
-		let fields = builders
+		let fields = col_metadata
 			.iter()
-			.map(|(n, _, _)| Field::new(n, DataType::Int64, true))
+			.map(|(n, c)| {
+				Field::new(
+					n,
+					match c {
+						SqlType::Int => DataType::Int64,
+						SqlType::Float => DataType::Float64,
+						SqlType::Bool => DataType::Boolean,
+						SqlType::String => DataType::Utf8,
+					},
+					true,
+				)
+			})
 			.collect();
 
-		let cols = builders
-			.iter()
-			.map(|(_, _, b)| b.borrow_mut().finish())
-			.collect();
-
+		let cols = builders.iter().map(|b| b.borrow_mut().finish()).collect();
 		Ok(RecordBatch::try_new(Arc::new(Schema::new(fields)), cols)?)
 	}
 }
