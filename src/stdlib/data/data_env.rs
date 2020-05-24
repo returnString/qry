@@ -45,6 +45,21 @@ pub fn env() -> EnvironmentPtr {
 				},
 			),
 		);
+
+		env.update(
+			"metadata",
+			Builtin::new_value(
+				Signature::returning(&Type::Null)
+					.param("connection", connection_type)
+					.param("table", &Type::String),
+				|args| {
+					let conn = args[0].as_native::<Connection>();
+					let table = args[1].as_string();
+					conn.conn_impl.get_table_metadata(table)?;
+					Ok(Value::Null(()))
+				},
+			),
+		);
 	}
 
 	RUNTIME_OPS.with(|o| {

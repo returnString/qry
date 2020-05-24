@@ -1,5 +1,6 @@
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
+use std::collections::HashMap;
 
 pub type SqlResult<T> = Result<T, SqlError>;
 
@@ -9,7 +10,21 @@ pub enum SqlError {
 	UnknownError(String),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum SqlType {
+	Int,
+	Float,
+	Bool,
+	String,
+}
+
+#[derive(Debug)]
+pub struct SqlTableMetadata {
+	pub col_types: HashMap<String, SqlType>,
+}
+
 pub trait ConnectionImpl {
+	fn get_table_metadata(&self, table: &str) -> SqlResult<SqlTableMetadata>;
 	fn execute(&self, sql: &str) -> SqlResult<i64>;
 	fn collect(&self, sql: &str) -> SqlResult<RecordBatch>;
 }

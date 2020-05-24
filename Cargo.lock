@@ -397,6 +397,7 @@ name = "qry"
 version = "0.1.0"
 dependencies = [
  "arrow 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "peg 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusqlite 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustyline 6.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

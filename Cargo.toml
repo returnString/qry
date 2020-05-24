@@ -9,6 +9,7 @@ peg = "0.6.2"
 rustyline = "6.1.2"
 arrow = { version = "0.16.0", features = ["simd"] }
 rusqlite = { version = "0.21.0", features = ["bundled"] }
+lazy_static = "1.4.0"
 
 [[bin]]
 name = "qry"
