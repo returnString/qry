@@ -109,6 +109,16 @@ pub fn env() -> EnvironmentPtr {
 				Ok(Value::String(df_to_string(&df).into_boxed_str()))
 			},
 		));
+
+		to_string.register(Builtin::new(
+			Signature::returning(&Type::String).param("obj", pipeline_type),
+			|_, args| {
+				let pipeline = args[0].as_native::<QueryPipeline>();
+				Ok(Value::String(
+					format!("QueryPipeline ({} steps)", pipeline.steps.len()).into_boxed_str(),
+				))
+			},
+		));
 	});
 
 	env

@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicI64, Ordering};
 #[derive(Clone)]
 pub struct QueryPipeline {
 	conn: Rc<Connection>,
-	steps: Vec<Rc<dyn PipelineStep>>,
+	pub steps: Vec<Rc<dyn PipelineStep>>,
 }
 
 impl QueryPipeline {
