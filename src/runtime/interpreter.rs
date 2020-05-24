@@ -191,6 +191,7 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 		Syntax::Null => Ok(Value::Null(())),
 		Syntax::BinaryOp { lhs, rhs, op } => eval_binop(ctx, lhs, rhs, *op),
 		Syntax::UnaryOp { target, op } => eval_unop(ctx, target, *op),
+		Syntax::Interpolate(_) => Err(InterpreterError::UnhandledSyntax),
 		Syntax::Function {
 			name,
 			params,
@@ -215,7 +216,6 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			Value::Method(method) => eval_callable(ctx, &*method.borrow(), positional_args),
 			_ => Err(InterpreterError::NotCallable),
 		},
-		_ => Err(InterpreterError::UnhandledSyntax),
 	}
 }
 
