@@ -1,6 +1,4 @@
-use super::{
-	Callable, EvalContext, EvalResult, InterpreterError, Parameter, Signature, Type, Value,
-};
+use super::{Callable, EvalContext, EvalError, EvalResult, Parameter, Signature, Type, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -90,7 +88,7 @@ impl Callable for Method {
 		if let Some(callable) = self.resolve(&arg_types) {
 			callable.call(ctx, args, named_trailing)
 		} else {
-			Err(InterpreterError::MethodNotImplemented)
+			Err(EvalError::MethodNotImplemented)
 		}
 	}
 }

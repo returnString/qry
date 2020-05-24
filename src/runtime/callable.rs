@@ -1,4 +1,4 @@
-use super::{eval_in_env, EvalContext, EvalResult, InterpreterError, Type, Value};
+use super::{eval_in_env, EvalContext, EvalError, EvalResult, Type, Value};
 use crate::lang::Syntax;
 
 #[derive(Debug, Clone)]
@@ -52,7 +52,7 @@ pub fn eval_callable(
 ) -> EvalResult {
 	let sig = callable.signature();
 	if positional.len() != sig.params.len() {
-		return Err(InterpreterError::ArgMismatch);
+		return Err(EvalError::ArgMismatch);
 	}
 
 	let args = positional

@@ -1,4 +1,4 @@
-use crate::runtime::{InterpreterError, Type};
+use crate::runtime::{EvalError, Type};
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
 use std::collections::HashMap;
@@ -10,17 +10,17 @@ pub enum SqlError {
 	ArrowError(ArrowError),
 	UnknownError(String),
 	SyntaxError,
-	EvalError(InterpreterError),
+	EvalError(EvalError),
 }
 
-impl From<SqlError> for InterpreterError {
+impl From<SqlError> for EvalError {
 	fn from(err: SqlError) -> Self {
-		InterpreterError::UserCodeError(format!("{:?}", err))
+		EvalError::UserCodeError(format!("{:?}", err))
 	}
 }
 
-impl From<InterpreterError> for SqlError {
-	fn from(err: InterpreterError) -> Self {
+impl From<EvalError> for SqlError {
+	fn from(err: EvalError) -> Self {
 		SqlError::EvalError(err)
 	}
 }

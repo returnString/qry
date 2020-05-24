@@ -1,6 +1,6 @@
 use super::{
-	assign_value, eval_in_env, eval_in_env_multi, Callable, EnvironmentPtr, EvalContext, EvalResult,
-	InterpreterError, Parameter, Signature, Value,
+	assign_value, eval_in_env, eval_in_env_multi, Callable, EnvironmentPtr, EvalContext, EvalError,
+	EvalResult, Parameter, Signature, Value,
 };
 use crate::lang::{ParameterDef, Syntax};
 use std::rc::Rc;
@@ -23,7 +23,7 @@ pub fn eval_function(
 		.iter()
 		.map(|p| match eval_in_env(ctx, &p.param_type)? {
 			Value::Type(t) => Ok(t),
-			_ => Err(InterpreterError::NotType),
+			_ => Err(EvalError::NotType),
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 
@@ -44,7 +44,7 @@ pub fn eval_function(
 			with_named_trailing: false,
 			return_type: match eval_in_env(ctx, return_type)? {
 				Value::Type(t) => t,
-				_ => return Err(InterpreterError::NotType),
+				_ => return Err(EvalError::NotType),
 			},
 		},
 		env: ctx.env.clone(),

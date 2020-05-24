@@ -25,7 +25,7 @@ fn main() {
 							_ => unreachable!(),
 						}
 					}
-					Err(err) => println!("interpreter error: {:?}", err),
+					Err(err) => println!("runtime error: {:?}", err),
 				},
 				Err(err) => println!("parser error {:?}", err),
 			},

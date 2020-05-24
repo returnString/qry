@@ -1,4 +1,4 @@
-use qry::runtime::{InterpreterError, Value};
+use qry::runtime::{EvalError, Value};
 
 pub mod helpers;
 
@@ -24,5 +24,5 @@ fn test_syntax() {
 
 #[test]
 fn test_syntax_failures() {
-	helpers::eval_expect_errors(&[("x", InterpreterError::NotFound("x".to_string()))]);
+	helpers::eval_expect_errors(&[("x", EvalError::NotFound("x".to_string()))]);
 }

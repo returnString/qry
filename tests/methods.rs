@@ -1,4 +1,4 @@
-use qry::runtime::{InterpreterError, Value};
+use qry::runtime::{EvalError, Value};
 
 pub mod helpers;
 
@@ -39,8 +39,8 @@ fn test_method_failures() {
 	helpers::eval_expect_errors(&[
 		(
 			"use ops ops::add(null, null)",
-			InterpreterError::MethodNotImplemented,
+			EvalError::MethodNotImplemented,
 		),
-		("null + null", InterpreterError::MethodNotImplemented),
+		("null + null", EvalError::MethodNotImplemented),
 	]);
 }

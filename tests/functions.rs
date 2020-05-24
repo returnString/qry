@@ -1,5 +1,5 @@
 use qry::lang::parse;
-use qry::runtime::{InterpreterError, Type, Value};
+use qry::runtime::{EvalError, Type, Value};
 
 pub mod helpers;
 
@@ -29,7 +29,7 @@ fn test_functions() {
 #[test]
 fn test_function_failures() {
 	helpers::eval_expect_errors(&[
-		("1()", InterpreterError::NotCallable),
-		("typeof(1, 2)", InterpreterError::ArgMismatch),
+		("1()", EvalError::NotCallable),
+		("typeof(1, 2)", EvalError::ArgMismatch),
 	]);
 }

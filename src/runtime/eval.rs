@@ -3,7 +3,7 @@ use crate::lang::syntax::*;
 use crate::stdlib;
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum InterpreterError {
+pub enum EvalError {
 	UnhandledSyntax,
 	IllegalAssignment,
 	InvalidTypeForImport,
@@ -15,7 +15,7 @@ pub enum InterpreterError {
 	UserCodeError(String),
 }
 
-pub type EvalResult = Result<Value, InterpreterError>;
+pub type EvalResult = Result<Value, EvalError>;
 
 pub fn assign_value(ctx: &EvalContext, name: &str, value: Value) -> EvalResult {
 	ctx.env.borrow_mut().update(name, value.clone());
@@ -28,7 +28,7 @@ fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult {
 			let value = eval_in_env(ctx, src)?;
 			assign_value(ctx, name, value)
 		}
-		_ => Err(InterpreterError::IllegalAssignment),
+		_ => Err(EvalError::IllegalAssignment),
 	}
 }
 
@@ -39,7 +39,7 @@ fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResul
 				.borrow()
 				.call(ctx, &[(&"a".to_string(), eval_in_env(ctx, target)?)], &[])
 		} else {
-			Err(InterpreterError::MethodNotImplemented)
+			Err(EvalError::MethodNotImplemented)
 		}
 	})
 }
@@ -52,17 +52,17 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 			let rhs_ident = if let Syntax::Ident(name) = rhs {
 				name
 			} else {
-				return Err(InterpreterError::InvalidTypeForImport);
+				return Err(EvalError::InvalidTypeForImport);
 			};
 
 			if let Value::Library(lib_env) = eval_in_env(ctx, lhs)? {
 				if let Some(val) = lib_env.borrow().get(rhs_ident) {
 					Ok(val)
 				} else {
-					Err(InterpreterError::NotFound(rhs_ident.clone()))
+					Err(EvalError::NotFound(rhs_ident.clone()))
 				}
 			} else {
-				Err(InterpreterError::InvalidTypeForImport)
+				Err(EvalError::InvalidTypeForImport)
 			}
 		}
 		// TODO: pipes can be expressed as a syntax rewrite pass before eval
@@ -83,7 +83,7 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 					},
 				)
 			}
-			_ => Err(InterpreterError::UnhandledSyntax),
+			_ => Err(EvalError::UnhandledSyntax),
 		},
 		_ => stdlib::ops::BINOP_LOOKUP.with(|m| {
 			if let Some(method) = m.get(&op) {
@@ -96,16 +96,13 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 					&[],
 				)
 			} else {
-				Err(InterpreterError::MethodNotImplemented)
+				Err(EvalError::MethodNotImplemented)
 			}
 		}),
 	}
 }
 
-fn resolve_lib(
-	starting_env: EnvironmentPtr,
-	from: &[String],
-) -> Result<EnvironmentPtr, InterpreterError> {
+fn resolve_lib(starting_env: EnvironmentPtr, from: &[String]) -> Result<EnvironmentPtr, EvalError> {
 	let mut current_env = starting_env;
 	for name in from {
 		let val = { current_env.borrow().get(name) };
@@ -113,10 +110,10 @@ fn resolve_lib(
 			if let Value::Library(lib_env) = lib_value {
 				current_env = lib_env;
 			} else {
-				return Err(InterpreterError::InvalidTypeForImport);
+				return Err(EvalError::InvalidTypeForImport);
 			}
 		} else {
-			return Err(InterpreterError::NotFound(name.clone()));
+			return Err(EvalError::NotFound(name.clone()));
 		}
 	}
 	Ok(current_env)
@@ -131,7 +128,7 @@ fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResul
 				if let Some(val) = lib_env.borrow().get(name) {
 					ctx.env.borrow_mut().update(name, val);
 				} else {
-					return Err(InterpreterError::NotFound(name.clone()));
+					return Err(EvalError::NotFound(name.clone()));
 				}
 			}
 		}
@@ -197,7 +194,7 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 		Syntax::Null => Ok(Value::Null(())),
 		Syntax::BinaryOp { lhs, rhs, op } => eval_binop(ctx, lhs, rhs, *op),
 		Syntax::UnaryOp { target, op } => eval_unop(ctx, target, *op),
-		Syntax::Interpolate(_) => Err(InterpreterError::UnhandledSyntax),
+		Syntax::Interpolate(_) => Err(EvalError::UnhandledSyntax),
 		Syntax::Function {
 			name,
 			params,
@@ -209,7 +206,7 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			if let Some(val) = ctx.env.borrow().get(name) {
 				Ok(val)
 			} else {
-				Err(InterpreterError::NotFound(name.clone()))
+				Err(EvalError::NotFound(name.clone()))
 			}
 		}
 		Syntax::Call {
@@ -220,7 +217,7 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			Value::Builtin(builtin) => eval_callable(ctx, &*builtin, positional_args),
 			Value::Function(func) => eval_callable(ctx, &*func, positional_args),
 			Value::Method(method) => eval_callable(ctx, &*method.borrow(), positional_args),
-			_ => Err(InterpreterError::NotCallable),
+			_ => Err(EvalError::NotCallable),
 		},
 	}
 }
