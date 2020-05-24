@@ -8,7 +8,7 @@ fn test_data_sqlite() {
 		("use data::*
 		conn <- connect_sqlite(\":memory:\")
 		execute(conn, \"create table test_table (name varchar(255), age integer)\")
-		execute(conn, \"insert into test_table (name, age) values ('ruan', 26), ('ruanlater', 27), ('thirdperson', 27)\")
+		execute(conn, \"insert into test_table (name, age) values ('ruan', 26), ('ruanlater', 27), ('thirdperson', 27), ('ancient one', null)\")
 		collect(table(conn, \"test_table\"))
 		", Value::Null(())),
 	]);

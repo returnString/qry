@@ -4,6 +4,7 @@ use arrow::array::{ArrayBuilder, BooleanBuilder, Float64Builder, Int64Builder, S
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use lazy_static::lazy_static;
+use rusqlite::types::ValueRef;
 use rusqlite::{Connection as SqliteConnection, Error as SqliteError, NO_PARAMS};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -28,6 +29,33 @@ lazy_static! {
 		m.insert("text".into(), SqlType::String);
 		m
 	};
+}
+
+macro_rules! write_cell {
+	($builder: expr, $builder_type: ty, $row: expr, $col_idx: expr, $write_func: expr, $getter: expr) => {{
+		let mut builder = $builder.borrow_mut();
+		let concrete_builder = builder
+			.as_any_mut()
+			.downcast_mut::<$builder_type>()
+			.unwrap();
+
+		if let ValueRef::Null = $row.get_raw($col_idx) {
+			concrete_builder.append_null()?;
+		} else {
+			let val = $getter()?;
+			$write_func(concrete_builder, &val)?
+		}
+		}};
+	($builder: expr, $builder_type: ty, $row: expr, $col_idx: expr) => {{
+		write_cell!(
+			$builder,
+			$builder_type,
+			$row,
+			$col_idx,
+			|b: &mut $builder_type, &val| b.append_value(val),
+			|| $row.get($col_idx)
+		)
+		}};
 }
 
 impl ConnectionImpl for SqliteConnectionImpl {
@@ -89,31 +117,18 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		while let Some(row) = rows.next()? {
 			for (col_idx, (builder, (_, col_type))) in builders.iter().zip(&col_metadata).enumerate() {
 				match col_type {
-					SqlType::Int => builder
-						.borrow_mut()
-						.as_any_mut()
-						.downcast_mut::<Int64Builder>()
-						.unwrap()
-						.append_value(row.get(col_idx)?)?,
-					SqlType::Float => builder
-						.borrow_mut()
-						.as_any_mut()
-						.downcast_mut::<Float64Builder>()
-						.unwrap()
-						.append_value(row.get(col_idx)?)?,
-					SqlType::Bool => builder
-						.borrow_mut()
-						.as_any_mut()
-						.downcast_mut::<BooleanBuilder>()
-						.unwrap()
-						.append_value(row.get(col_idx)?)?,
-					SqlType::String => builder
-						.borrow_mut()
-						.as_any_mut()
-						.downcast_mut::<StringBuilder>()
-						.unwrap()
-						.append_value(&row.get::<usize, String>(col_idx)?)?,
-				}
+					SqlType::Int => write_cell!(builder, Int64Builder, row, col_idx),
+					SqlType::Float => write_cell!(builder, Float64Builder, row, col_idx),
+					SqlType::Bool => write_cell!(builder, BooleanBuilder, row, col_idx),
+					SqlType::String => write_cell!(
+						builder,
+						StringBuilder,
+						row,
+						col_idx,
+						|b: &mut StringBuilder, s| b.append_value(s),
+						|| row.get::<usize, String>(col_idx)
+					),
+				};
 			}
 		}
 
