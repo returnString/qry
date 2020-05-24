@@ -29,12 +29,6 @@ jobs:
         toolchain: ${{ matrix.rust }}
         override: true
 
-    - name: Run tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: test 
-        args: -Z unstable-options --profile ${{ matrix.profile }}
-
     - name: Prep build dir
       run: |
         mkdir build
@@ -44,6 +38,12 @@ jobs:
       with:
         command: build
         args: -Z unstable-options --profile ${{ matrix.profile }} --out-dir=build
+
+    - name: Run tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test 
+        args: -Z unstable-options --profile ${{ matrix.profile }}
 
     - name: Upload build
       uses: actions/upload-artifact@v1
