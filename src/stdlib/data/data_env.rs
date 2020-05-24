@@ -26,7 +26,7 @@ pub fn env() -> EnvironmentPtr {
 				Signature::returning(&Type::Int)
 					.param("connection", connection_type)
 					.param("query", &Type::String),
-				|args| {
+				|_, args| {
 					let conn = args[0].as_native::<Connection>();
 					let query = args[1].as_string();
 					Ok(Value::Int(conn.conn_impl.execute(query)?))
@@ -40,7 +40,7 @@ pub fn env() -> EnvironmentPtr {
 				Signature::returning(pipeline_type)
 					.param("connection", connection_type)
 					.param("table", &Type::String),
-				|args| {
+				|_, args| {
 					let conn = args[0].as_native::<Connection>();
 					let table = args[1].as_string();
 					Ok(Value::Native(Rc::new(QueryPipeline::new(conn, table))))
@@ -52,7 +52,7 @@ pub fn env() -> EnvironmentPtr {
 			"collect",
 			Builtin::new_value(
 				Signature::returning(dataframe_type).param("pipeline", pipeline_type),
-				|args| {
+				|_, args| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
 					let batch = pipeline.collect()?;
 					let df = DataFrame::new(vec![batch]);
@@ -65,7 +65,7 @@ pub fn env() -> EnvironmentPtr {
 			"num_rows",
 			Builtin::new_value(
 				Signature::returning(&Type::Int).param("df", dataframe_type),
-				|args| {
+				|_, args| {
 					let df = args[0].as_native::<DataFrame>();
 					Ok(Value::Int(df.num_rows()))
 				},
@@ -77,7 +77,7 @@ pub fn env() -> EnvironmentPtr {
 		let mut to_string = o.to_string.borrow_mut();
 		to_string.register(Builtin::new(
 			Signature::returning(&Type::String).param("obj", connection_type),
-			|args| {
+			|_, args| {
 				Ok(Value::String(
 					format!("Connection: {}", args[0].as_native::<Connection>().driver).into_boxed_str(),
 				))
@@ -86,7 +86,7 @@ pub fn env() -> EnvironmentPtr {
 
 		to_string.register(Builtin::new(
 			Signature::returning(&Type::String).param("obj", dataframe_type),
-			|args| {
+			|_, args| {
 				let df = args[0].as_native::<DataFrame>();
 				Ok(Value::String(df_to_string(&df).into_boxed_str()))
 			},

@@ -48,7 +48,7 @@ macro_rules! binop {
 				with_trailing: false,
 				with_named_trailing: false,
 			},
-			|args| match (&args[0], &args[1]) {
+			|_, args| match (&args[0], &args[1]) {
 				(Value::$lhs_type(a), Value::$rhs_type(b)) => {
 					Ok(Value::$return_type($builder(a.clone(), b.clone())))
 				}
@@ -138,7 +138,7 @@ macro_rules! unop {
 				with_trailing: false,
 				with_named_trailing: false,
 			},
-			|args| match &args[0] {
+			|_, args| match &args[0] {
 				Value::$target_type(a) => Ok(Value::$return_type($builder(a.clone()))),
 				_ => unreachable!(),
 			},

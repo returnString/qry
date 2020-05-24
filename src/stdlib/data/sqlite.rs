@@ -1,5 +1,5 @@
 use super::{Connection, ConnectionImpl, SqlError, SqlMetadata, SqlResult, SqlType};
-use crate::runtime::{EvalResult, InterpreterError, Value};
+use crate::runtime::{EvalContext, EvalResult, InterpreterError, Value};
 use arrow::array::{ArrayBuilder, BooleanBuilder, Float64Builder, Int64Builder, StringBuilder};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
@@ -169,7 +169,7 @@ fn sqlite_connect_impl(connstring: &str) -> SqlResult<SqliteConnection> {
 	Ok(SqliteConnection::open(connstring)?)
 }
 
-pub fn connect_sqlite(args: &[Value]) -> EvalResult {
+pub fn connect_sqlite(_: &EvalContext, args: &[Value]) -> EvalResult {
 	let connstring = args[0].as_string();
 	let sqlite_conn = sqlite_connect_impl(connstring)?;
 
