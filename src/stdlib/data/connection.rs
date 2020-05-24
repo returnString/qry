@@ -1,4 +1,4 @@
-use crate::runtime::InterpreterError;
+use crate::runtime::{InterpreterError, Type};
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
 use std::collections::HashMap;
@@ -25,17 +25,9 @@ impl From<InterpreterError> for SqlError {
 	}
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum SqlType {
-	Int,
-	Float,
-	Bool,
-	String,
-}
-
 #[derive(Debug, Clone)]
 pub struct SqlMetadata {
-	pub col_types: HashMap<String, SqlType>,
+	pub col_types: HashMap<String, Type>,
 }
 
 pub trait ConnectionImpl {

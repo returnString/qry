@@ -1,5 +1,5 @@
-use super::{Connection, ConnectionImpl, SqlError, SqlMetadata, SqlResult, SqlType};
-use crate::runtime::{EvalContext, EvalResult, Value};
+use super::{Connection, ConnectionImpl, SqlError, SqlMetadata, SqlResult};
+use crate::runtime::{EvalContext, EvalResult, Type, Value};
 use arrow::array::{ArrayBuilder, BooleanBuilder, Float64Builder, Int64Builder, StringBuilder};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
@@ -23,10 +23,10 @@ where
 }
 
 lazy_static! {
-	static ref AFFINITY_MAP: HashMap<String, SqlType> = {
+	static ref AFFINITY_MAP: HashMap<String, Type> = {
 		let mut m = HashMap::new();
-		m.insert("integer".into(), SqlType::Int);
-		m.insert("text".into(), SqlType::String);
+		m.insert("integer".into(), Type::Int);
+		m.insert("text".into(), Type::String);
 		m
 	};
 }
@@ -81,7 +81,7 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		if let Some(row) = rows.next()? {
 			for (col_idx, name) in col_names.iter().enumerate() {
 				let col_affinity: String = row.get(col_idx)?;
-				let col_type = AFFINITY_MAP[&col_affinity];
+				let col_type = AFFINITY_MAP[&col_affinity].clone();
 				metadata.col_types.insert(name.to_string(), col_type);
 			}
 		}
@@ -100,16 +100,22 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		let col_metadata = stmt
 			.columns()
 			.iter()
-			.map(|c| (c.name().to_string(), result_metadata.col_types[c.name()]))
+			.map(|c| {
+				(
+					c.name().to_string(),
+					result_metadata.col_types[c.name()].clone(),
+				)
+			})
 			.collect::<Vec<_>>();
 
 		let builders = col_metadata
 			.iter()
 			.map(|(_, c)| match c {
-				SqlType::Int => box_builder(Int64Builder::new(0)),
-				SqlType::Float => box_builder(Float64Builder::new(0)),
-				SqlType::Bool => box_builder(BooleanBuilder::new(0)),
-				SqlType::String => box_builder(StringBuilder::new(0)),
+				Type::Int => box_builder(Int64Builder::new(0)),
+				Type::Float => box_builder(Float64Builder::new(0)),
+				Type::Bool => box_builder(BooleanBuilder::new(0)),
+				Type::String => box_builder(StringBuilder::new(0)),
+				_ => unimplemented!(),
 			})
 			.collect::<Vec<_>>();
 
@@ -117,10 +123,10 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		while let Some(row) = rows.next()? {
 			for (col_idx, (builder, (_, col_type))) in builders.iter().zip(&col_metadata).enumerate() {
 				match col_type {
-					SqlType::Int => write_cell!(builder, Int64Builder, row, col_idx),
-					SqlType::Float => write_cell!(builder, Float64Builder, row, col_idx),
-					SqlType::Bool => write_cell!(builder, BooleanBuilder, row, col_idx),
-					SqlType::String => write_cell!(
+					Type::Int => write_cell!(builder, Int64Builder, row, col_idx),
+					Type::Float => write_cell!(builder, Float64Builder, row, col_idx),
+					Type::Bool => write_cell!(builder, BooleanBuilder, row, col_idx),
+					Type::String => write_cell!(
 						builder,
 						StringBuilder,
 						row,
@@ -128,6 +134,7 @@ impl ConnectionImpl for SqliteConnectionImpl {
 						|b: &mut StringBuilder, s| b.append_value(s),
 						|| row.get::<usize, String>(col_idx)
 					),
+					_ => unimplemented!(),
 				};
 			}
 		}
@@ -138,10 +145,11 @@ impl ConnectionImpl for SqliteConnectionImpl {
 				Field::new(
 					n,
 					match c {
-						SqlType::Int => DataType::Int64,
-						SqlType::Float => DataType::Float64,
-						SqlType::Bool => DataType::Boolean,
-						SqlType::String => DataType::Utf8,
+						Type::Int => DataType::Int64,
+						Type::Float => DataType::Float64,
+						Type::Bool => DataType::Boolean,
+						Type::String => DataType::Utf8,
+						_ => unimplemented!(),
 					},
 					true,
 				)
