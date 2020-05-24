@@ -100,6 +100,7 @@ peg::parser! {
 			"null" { Syntax::Null }
 			ident:ident() { Syntax::Ident(ident) }
 			"(" _ e:expr() _ ")" { e }
+			"{{" _ e:expr() _ "}}" { Syntax::Interpolate(Box::new(e)) }
 		}
 
 		pub rule program() -> Vec<Syntax>

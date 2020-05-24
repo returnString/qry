@@ -26,5 +26,12 @@ fn test_data_sqlite() {
 			),
 			Value::Int(1),
 		),
+		(
+			&with_table_bootstrap(
+				"name_to_find <- \"ancient one\"
+				num_rows(collect(filter(table(conn, \"test_table\"), name == {{name_to_find}})))",
+			),
+			Value::Int(1),
+		),
 	]);
 }
