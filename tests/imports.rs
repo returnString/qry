@@ -1,6 +1,6 @@
 use qry::runtime::{InterpreterError, Type, Value};
 
-mod helpers;
+pub mod helpers;
 
 #[test]
 fn test_imports() {

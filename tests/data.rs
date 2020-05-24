@@ -1,6 +1,6 @@
 use qry::runtime::Value;
 
-mod helpers;
+pub mod helpers;
 
 #[test]
 fn test_data_sqlite() {
