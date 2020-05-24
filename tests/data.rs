@@ -32,5 +32,9 @@ fn test_data_sqlite() {
 			),
 			Value::Int(1),
 		),
+		(
+			&with_table_bootstrap(r#"num_rows(collect(filter(test_table, age == 27)))"#),
+			Value::Int(2),
+		),
 	]);
 }

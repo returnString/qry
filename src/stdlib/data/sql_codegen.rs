@@ -90,7 +90,7 @@ pub fn expr_to_sql(
 		// FIXME: add proper types for columns when we started needing proper op dispatch
 		Syntax::Ident(col_name) => Ok(SqlExpression {
 			text: col_name.to_string(),
-			sql_type: Type::String,
+			sql_type: metadata.col_types[col_name].clone(),
 		}),
 		Syntax::BinaryOp { lhs, op, rhs } => {
 			let lhs_val = expr_to_sql(ctx, lhs, metadata)?;
