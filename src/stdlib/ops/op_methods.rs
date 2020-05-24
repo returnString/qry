@@ -159,7 +159,7 @@ thread_local! {
 			to_string.register(unop!(Null, String, |_| "null".into()));
 			to_string.register(unop!(String, String, |a| a));
 			to_string.register(unop!(Int, String, |a: i64| a.to_string().into_boxed_str()));
-			to_string.register(unop!(Float, String, |a: f64| a.to_string().into_boxed_str()));
+			to_string.register(unop!(Float, String, |a: f64| format!("{:?}", a).into_boxed_str()));
 			to_string.register(unop!(Bool, String, |a: bool| a.to_string().into_boxed_str()));
 		}
 
