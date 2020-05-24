@@ -78,6 +78,10 @@ peg::parser! {
 				}
 			}
 			--
+			lhs:(@) _ "|>" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Pipe) }
+			--
+			"-" _ target:@ { unop(target, UnaryOperator::Minus) }
+			--
 			target:@ "(" _ args:expr() ** (_ "," _) ")" {
 				Syntax::Call {
 					target: Box::new(target),
@@ -85,8 +89,6 @@ peg::parser! {
 					named_args: HashMap::new(),
 				}
 			}
-			--
-			"-" _ target:@ { unop(target, UnaryOperator::Minus) }
 			--
 			lhs:(@) "::" rhs:@ { binop(lhs, rhs, BinaryOperator::Access) }
 			--

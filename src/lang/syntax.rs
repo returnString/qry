@@ -15,6 +15,7 @@ pub enum BinaryOperator {
 	Lte,
 	Gt,
 	Gte,
+	Pipe,
 }
 
 impl BinaryOperator {
@@ -31,7 +32,7 @@ impl BinaryOperator {
 			Self::Lte => Some("lte"),
 			Self::Gt => Some("gt"),
 			Self::Gte => Some("gte"),
-			Self::LAssign | Self::RAssign => None,
+			Self::LAssign | Self::RAssign | Self::Pipe => None,
 		}
 	}
 }

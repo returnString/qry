@@ -18,22 +18,22 @@ fn with_table_bootstrap(query: &str) -> String {
 fn test_data_sqlite() {
 	helpers::eval_expect_values(&[
 		(
-			&with_table_bootstrap(r#"num_rows(collect(test_table))"#),
+			&with_table_bootstrap(r#"test_table |> collect() |> num_rows()"#),
 			Value::Int(4),
 		),
 		(
-			&with_table_bootstrap(r#"num_rows(collect(filter(test_table, name == "ruan")))"#),
+			&with_table_bootstrap(r#"test_table |> filter(name == "ruan") |> collect() |> num_rows()"#),
 			Value::Int(1),
 		),
 		(
 			&with_table_bootstrap(
 				r#"name_to_find <- "ancient one"
-				num_rows(collect(filter(test_table, name == {{name_to_find}})))"#,
+				test_table |> filter(name == {{name_to_find}}) |> collect() |> num_rows()"#,
 			),
 			Value::Int(1),
 		),
 		(
-			&with_table_bootstrap(r#"num_rows(collect(filter(test_table, age == 27)))"#),
+			&with_table_bootstrap(r#"test_table |> filter(age == 27) |> collect() |> num_rows()"#),
 			Value::Int(2),
 		),
 	]);

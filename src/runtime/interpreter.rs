@@ -65,6 +65,26 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 				Err(InterpreterError::InvalidTypeForImport)
 			}
 		}
+		// TODO: pipes can be expressed as a syntax rewrite pass before eval
+		BinaryOperator::Pipe => match rhs {
+			Syntax::Call {
+				target,
+				positional_args,
+				named_args,
+			} => {
+				let mut new_args = positional_args.clone();
+				new_args.insert(0, lhs.clone());
+				eval_in_env(
+					ctx,
+					&Syntax::Call {
+						target: target.clone(),
+						positional_args: new_args,
+						named_args: named_args.clone(),
+					},
+				)
+			}
+			_ => Err(InterpreterError::UnhandledSyntax),
+		},
 		_ => stdlib::ops::BINOP_LOOKUP.with(|m| {
 			if let Some(method) = m.get(&op) {
 				method.borrow().call(

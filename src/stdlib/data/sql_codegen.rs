@@ -21,9 +21,10 @@ fn binop_symbol(op: &BinaryOperator) -> &'static str {
 		BinaryOperator::Lte => "<=",
 		BinaryOperator::Gt => ">",
 		BinaryOperator::Gte => ">=",
-		BinaryOperator::LAssign | BinaryOperator::RAssign | BinaryOperator::Access => {
-			panic!("invalid op for sql")
-		}
+		BinaryOperator::LAssign
+		| BinaryOperator::RAssign
+		| BinaryOperator::Access
+		| BinaryOperator::Pipe => panic!("invalid op for sql"),
 	}
 }
 
