@@ -1,4 +1,4 @@
-use super::{connect_sqlite, print_batch, Connection, QueryPipeline};
+use super::{connect_sqlite, df_to_string, Connection, DataFrame, QueryPipeline};
 use crate::runtime::{Builtin, Environment, EnvironmentPtr, Signature, Type, Value};
 use crate::stdlib::ops::RUNTIME_OPS;
 use std::any::TypeId;
@@ -7,6 +7,7 @@ use std::rc::Rc;
 pub fn env() -> EnvironmentPtr {
 	let connection_type = &Type::Native(TypeId::of::<Connection>());
 	let pipeline_type = &Type::Native(TypeId::of::<QueryPipeline>());
+	let dataframe_type = &Type::Native(TypeId::of::<DataFrame>());
 
 	let env = Environment::new("data");
 	{
@@ -50,12 +51,23 @@ pub fn env() -> EnvironmentPtr {
 		env.update(
 			"collect",
 			Builtin::new_value(
-				Signature::returning(&Type::Null).param("pipeline", pipeline_type),
+				Signature::returning(dataframe_type).param("pipeline", pipeline_type),
 				|args| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
-					let result = pipeline.collect()?;
-					print_batch(&result);
-					Ok(Value::Null(()))
+					let batch = pipeline.collect()?;
+					let df = DataFrame::new(vec![batch]);
+					Ok(Value::Native(Rc::new(df)))
+				},
+			),
+		);
+
+		env.update(
+			"num_rows",
+			Builtin::new_value(
+				Signature::returning(&Type::Int).param("df", dataframe_type),
+				|args| {
+					let df = args[0].as_native::<DataFrame>();
+					Ok(Value::Int(df.num_rows()))
 				},
 			),
 		);
@@ -69,6 +81,14 @@ pub fn env() -> EnvironmentPtr {
 				Ok(Value::String(
 					format!("Connection: {}", args[0].as_native::<Connection>().driver).into_boxed_str(),
 				))
+			},
+		));
+
+		to_string.register(Builtin::new(
+			Signature::returning(&Type::String).param("obj", dataframe_type),
+			|args| {
+				let df = args[0].as_native::<DataFrame>();
+				Ok(Value::String(df_to_string(&df).into_boxed_str()))
 			},
 		));
 	});
