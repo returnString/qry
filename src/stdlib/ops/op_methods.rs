@@ -1,6 +1,7 @@
 use crate::lang::{BinaryOperator, UnaryOperator};
 use crate::runtime::{
-	Builtin, Environment, EnvironmentPtr, Method, MethodPtr, Parameter, Signature, Type, Value,
+	Builtin, Environment, EnvironmentPtr, EvalError, Method, MethodPtr, Parameter, Signature, Type,
+	Value,
 };
 use std::collections::HashMap;
 
@@ -152,7 +153,14 @@ pub struct RuntimeOps {
 
 thread_local! {
 	pub static RUNTIME_OPS: RuntimeOps = {
-		let to_string = Method::new(&["val"], Some(Type::String));
+		let to_string_fallback = Builtin::new(Signature::returning(&Type::String).param("val", &Type::Null), |_, args| {
+			match args[0] {
+				Value::Native(_) => Ok(Value::String("opaque native type".into())),
+				_ => Err(EvalError::MethodNotImplemented),
+			}
+		});
+
+		let to_string = Method::new(&["val"], Some(Type::String), Some(to_string_fallback));
 
 		{
 			let mut to_string = to_string.borrow_mut();
@@ -172,7 +180,7 @@ thread_local! {
 	pub static BINOP_LOOKUP: HashMap<BinaryOperator, MethodPtr> = {
 		let mut m = HashMap::new();
 		let mut new_binop = |op| {
-			let method = Method::new(&["a", "b"], None);
+			let method = Method::new(&["a", "b"], None, None);
 			m.insert(op, method.clone());
 			method
 		};
@@ -211,7 +219,7 @@ thread_local! {
 	pub static UNOP_LOOKUP: HashMap<UnaryOperator, MethodPtr> = {
 		let mut m = HashMap::new();
 		let mut new_unop = |op| {
-			let method = Method::new(&["a"], None);
+			let method = Method::new(&["a"], None, None);
 			m.insert(op, method.clone());
 			method
 		};

@@ -8,12 +8,17 @@ pub struct Method {
 	signature: Signature,
 	impls: HashMap<Vec<Type>, Rc<dyn Callable>>,
 	fixed_return_type: Option<Type>,
+	default_impl: Option<Rc<dyn Callable>>,
 }
 
 pub type MethodPtr = Rc<RefCell<Method>>;
 
 impl Method {
-	pub fn new(dispatch_param_names: &[&str], fixed_return_type: Option<Type>) -> MethodPtr {
+	pub fn new(
+		dispatch_param_names: &[&str],
+		fixed_return_type: Option<Type>,
+		default_impl: Option<Rc<dyn Callable>>,
+	) -> MethodPtr {
 		let params = dispatch_param_names
 			.iter()
 			.map(|n| Parameter {
@@ -32,6 +37,7 @@ impl Method {
 				with_named_trailing: false,
 			},
 			impls: Default::default(),
+			default_impl,
 		}))
 	}
 
@@ -86,6 +92,8 @@ impl Callable for Method {
 			.collect::<Vec<_>>();
 
 		if let Some(callable) = self.resolve(&arg_types) {
+			callable.call(ctx, args, named_trailing)
+		} else if let Some(callable) = &self.default_impl {
 			callable.call(ctx, args, named_trailing)
 		} else {
 			Err(EvalError::MethodNotImplemented)

@@ -1,5 +1,5 @@
 use qry::lang::parse;
-use qry::runtime::{eval, Callable, EvalContext, Value};
+use qry::runtime::{eval, Callable, EvalContext};
 use qry::stdlib::ops::RUNTIME_OPS;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -20,9 +20,8 @@ fn main() {
 							.call(&ctx, &[(&"a".to_string(), &value)], &[]);
 
 						match value_str {
-							Ok(Value::String(s)) => println!("{}", s),
+							Ok(v) => println!("{}", v.as_string()),
 							Err(err) => println!("error rendering value: {:?}", err),
-							_ => unreachable!(),
 						}
 					}
 					Err(err) => println!("runtime error: {:?}", err),
