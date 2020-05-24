@@ -21,6 +21,8 @@ fn binop_symbol(op: &BinaryOperator) -> &'static str {
 		BinaryOperator::Lte => "<=",
 		BinaryOperator::Gt => ">",
 		BinaryOperator::Gte => ">=",
+		BinaryOperator::And => "and",
+		BinaryOperator::Or => "or",
 		BinaryOperator::LAssign
 		| BinaryOperator::RAssign
 		| BinaryOperator::Access

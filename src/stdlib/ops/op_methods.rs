@@ -195,6 +195,8 @@ thread_local! {
 		new_binop(BinaryOperator::Lte);
 		new_binop(BinaryOperator::Gt);
 		new_binop(BinaryOperator::Gte);
+		let and = new_binop(BinaryOperator::And);
+		let or = new_binop(BinaryOperator::Or);
 
 		{
 			numeric_binops!(m, Int, Int, Int, i64);
@@ -202,7 +204,12 @@ thread_local! {
 			numeric_binops!(m, Int, Float, Float, f64);
 			numeric_binops!(m, Float, Int, Float, f64);
 
+			let mut and = and.borrow_mut();
+			let mut or = or.borrow_mut();
+
 			equality_ops!(m, Bool, Bool, bool);
+			and.register(binop!(Bool, Bool, Bool, |a, b| a && b));
+			or.register(binop!(Bool, Bool, Bool, |a, b| a || b));
 
 			let mut add = add.borrow_mut();
 			let mut equal = equal.borrow_mut();

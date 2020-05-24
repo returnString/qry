@@ -54,6 +54,10 @@ peg::parser! {
 			--
 			lhs:(@) _ "->" _ rhs:@ { binop(lhs, rhs, BinaryOperator::RAssign) }
 			--
+			lhs:(@) _ "|" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Or) }
+			--
+			lhs:(@) _ "&" _ rhs:@ { binop(lhs, rhs, BinaryOperator::And) }
+			--
 			"!" _ target:@ { unop(target, UnaryOperator::Negate) }
 			--
 			lhs:(@) _ "==" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Equal) }

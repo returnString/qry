@@ -9,6 +9,12 @@ fn test_syntax() {
 		("4.5", Value::Float(4.5)),
 		("null", Value::Null(())),
 		("true", Value::Bool(true)),
+		("true & true", Value::Bool(true)),
+		("true & false", Value::Bool(false)),
+		("false & false", Value::Bool(false)),
+		("true | true", Value::Bool(true)),
+		("true | false", Value::Bool(true)),
+		("false | false", Value::Bool(false)),
 		("false", Value::Bool(false)),
 		("\"mystr\"", Value::String("mystr".into())),
 		(
