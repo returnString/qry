@@ -24,7 +24,7 @@ impl Environment {
 	}
 
 	pub fn update(&mut self, name: &str, val: Value) {
-		self.state.insert(name.to_string(), val);
+		self.state.insert(name.to_string(), val.clone());
 	}
 
 	pub fn get(&self, name: &str) -> Option<Value> {

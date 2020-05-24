@@ -17,7 +17,7 @@ fn main() {
 					Ok(value) => {
 						let value_str = to_string
 							.borrow()
-							.call(&ctx, &[(&"a".to_string(), value)], &[]);
+							.call(&ctx, &[(&"a".to_string(), &value)], &[]);
 
 						match value_str {
 							Ok(Value::String(s)) => println!("{}", s),

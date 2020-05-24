@@ -65,13 +65,13 @@ impl Callable for Function {
 	fn call(
 		&self,
 		ctx: &EvalContext,
-		args: &[(&String, Value)],
-		_: &[(&String, Value)],
+		args: &[(&String, &Value)],
+		_: &[(&String, &Value)],
 	) -> EvalResult {
 		let func_body_env = self.env.borrow().child("funceval");
 
 		for (name, value) in args {
-			func_body_env.borrow_mut().update(name, value.clone());
+			func_body_env.borrow_mut().update(name, (*value).clone());
 		}
 
 		eval_in_env_multi(&ctx.child(func_body_env), &self.body)

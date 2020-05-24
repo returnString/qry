@@ -77,8 +77,8 @@ impl Callable for Method {
 	fn call(
 		&self,
 		ctx: &EvalContext,
-		args: &[(&String, Value)],
-		named_trailing: &[(&String, Value)],
+		args: &[(&String, &Value)],
+		named_trailing: &[(&String, &Value)],
 	) -> EvalResult {
 		let arg_types = args
 			.iter()

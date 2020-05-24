@@ -37,7 +37,7 @@ fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResul
 		if let Some(method) = m.get(&op) {
 			method
 				.borrow()
-				.call(ctx, &[(&"a".to_string(), eval_in_env(ctx, target)?)], &[])
+				.call(ctx, &[(&"a".to_string(), &eval_in_env(ctx, target)?)], &[])
 		} else {
 			Err(EvalError::MethodNotImplemented)
 		}
@@ -90,8 +90,8 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 				method.borrow().call(
 					ctx,
 					&[
-						(&"a".to_string(), eval_in_env(ctx, lhs)?),
-						(&"b".to_string(), eval_in_env(ctx, rhs)?),
+						(&"a".to_string(), &eval_in_env(ctx, lhs)?),
+						(&"b".to_string(), &eval_in_env(ctx, rhs)?),
 					],
 					&[],
 				)

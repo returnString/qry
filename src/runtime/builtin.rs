@@ -2,7 +2,7 @@ use super::{Callable, EvalContext, EvalResult, Signature, Value};
 use std::fmt::Debug;
 use std::rc::Rc;
 
-type BuiltinFunc = fn(&EvalContext, &[Value]) -> EvalResult;
+type BuiltinFunc = fn(&EvalContext, &[&Value]) -> EvalResult;
 
 #[derive(Clone)]
 pub struct Builtin {
@@ -36,10 +36,10 @@ impl Callable for Builtin {
 	fn call(
 		&self,
 		ctx: &EvalContext,
-		args: &[(&String, Value)],
-		_: &[(&String, Value)],
+		args: &[(&String, &Value)],
+		_: &[(&String, &Value)],
 	) -> EvalResult {
-		let unnamed_args = args.iter().map(|(_, v)| v.clone()).collect::<Vec<_>>();
+		let unnamed_args = args.iter().map(|(_, v)| *v).collect::<Vec<_>>();
 		(self.func)(ctx, &unnamed_args)
 	}
 }

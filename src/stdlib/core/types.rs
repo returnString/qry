@@ -3,12 +3,12 @@ use crate::runtime::{
 };
 use crate::stdlib::ops::RUNTIME_OPS;
 
-fn typeof_func(_: &EvalContext, args: &[Value]) -> EvalResult {
+fn typeof_func(_: &EvalContext, args: &[&Value]) -> EvalResult {
 	let target = &args[0];
 	Ok(Value::Type(target.runtime_type()))
 }
 
-fn parse_func(_: &EvalContext, args: &[Value]) -> EvalResult {
+fn parse_func(_: &EvalContext, args: &[&Value]) -> EvalResult {
 	Ok(args[0].clone())
 }
 
