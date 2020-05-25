@@ -35,9 +35,7 @@ fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult {
 fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResult {
 	stdlib::ops::UNOP_LOOKUP.with(|m| {
 		if let Some(method) = m.get(&op) {
-			method
-				.borrow()
-				.call(ctx, &[(&"a".to_string(), &eval(ctx, target)?)], &[])
+			method.borrow().call(ctx, &[eval(ctx, target)?], &[])
 		} else {
 			Err(EvalError::MethodNotImplemented)
 		}
@@ -87,14 +85,9 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 		},
 		_ => stdlib::ops::BINOP_LOOKUP.with(|m| {
 			if let Some(method) = m.get(&op) {
-				method.borrow().call(
-					ctx,
-					&[
-						(&"a".to_string(), &eval(ctx, lhs)?),
-						(&"b".to_string(), &eval(ctx, rhs)?),
-					],
-					&[],
-				)
+				method
+					.borrow()
+					.call(ctx, &[eval(ctx, lhs)?, eval(ctx, rhs)?], &[])
 			} else {
 				Err(EvalError::MethodNotImplemented)
 			}
@@ -225,14 +218,9 @@ pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			let eq_method = stdlib::ops::BINOP_LOOKUP.with(|m| m[&BinaryOperator::Equal].clone());
 			for case in cases {
 				let case_val = eval(ctx, &case.expr)?;
-				let eq_val = eq_method.borrow().call(
-					ctx,
-					&[
-						(&"a".to_string(), &target_val),
-						(&"b".to_string(), &case_val),
-					],
-					&[],
-				)?;
+				let eq_val = eq_method
+					.borrow()
+					.call(ctx, &[target_val.clone(), case_val], &[])?;
 
 				if eq_val.as_bool() {
 					ret = eval(ctx, &case.returns)?;

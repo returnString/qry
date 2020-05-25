@@ -62,16 +62,13 @@ impl Callable for Function {
 		&self.signature
 	}
 
-	fn call(
-		&self,
-		ctx: &EvalContext,
-		args: &[(&String, &Value)],
-		_: &[(&String, &Value)],
-	) -> EvalResult {
+	fn call(&self, ctx: &EvalContext, args: &[Value], _: &[(&String, Value)]) -> EvalResult {
 		let func_body_env = self.env.borrow().child("funceval");
 
-		for (name, value) in args {
-			func_body_env.borrow_mut().update(name, (*value).clone());
+		for (value, param) in args.iter().zip(&self.signature.params) {
+			func_body_env
+				.borrow_mut()
+				.update(&param.name, (*value).clone());
 		}
 
 		eval_multi(&ctx.child(func_body_env), &self.body)

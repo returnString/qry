@@ -4,15 +4,12 @@ use qry::stdlib::ops::RUNTIME_OPS;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-fn print_value(ctx: &EvalContext, value: &Value) {
+fn print_value(ctx: &EvalContext, value: Value) {
 	let to_string = RUNTIME_OPS.with(|o| o.to_string.clone());
 
 	print!("({})", value.runtime_type().name());
 
-	if let Ok(value_str) = to_string
-		.borrow()
-		.call(&ctx, &[(&"a".to_string(), &value)], &[])
-	{
+	if let Ok(value_str) = to_string.borrow().call(&ctx, &[value], &[]) {
 		print!(" {}", value_str.as_string());
 	}
 
@@ -27,7 +24,7 @@ fn main() {
 		match rl.readline("> ") {
 			Ok(line) => match parse(&line) {
 				Ok(syntax) => match eval_multi(&ctx, &syntax) {
-					Ok(value) => print_value(&ctx, &value),
+					Ok(value) => print_value(&ctx, value),
 					Err(err) => println!("runtime error: {:?}", err),
 				},
 				Err(err) => println!("parser error {:?}", err),

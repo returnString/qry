@@ -53,8 +53,8 @@ pub trait Callable {
 	fn call(
 		&self,
 		ctx: &EvalContext,
-		args: &[(&String, &Value)],
-		named_varargs: &[(&String, &Value)],
+		args: &[Value],
+		named_varargs: &[(&String, Value)],
 	) -> EvalResult;
 }
 
@@ -90,11 +90,5 @@ pub fn eval_callable(
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 
-	let combined = args
-		.iter()
-		.zip(&param_vec)
-		.map(|(a, p)| (&p.name, a))
-		.collect::<Vec<_>>();
-
-	callable.call(ctx, combined.as_slice(), &[])
+	callable.call(ctx, &args, &[])
 }

@@ -3,12 +3,12 @@ use crate::runtime::{
 };
 use crate::stdlib::ops::RUNTIME_OPS;
 
-fn typeof_func(_: &EvalContext, args: &[&Value]) -> EvalResult {
+fn typeof_func(_: &EvalContext, args: &[Value]) -> EvalResult {
 	let target = &args[0];
 	Ok(Value::Type(target.runtime_type()))
 }
 
-fn parse_func(_: &EvalContext, args: &[&Value]) -> EvalResult {
+fn parse_func(_: &EvalContext, args: &[Value]) -> EvalResult {
 	Ok(args[0].clone())
 }
 
@@ -51,7 +51,7 @@ pub fn env() -> EnvironmentPtr {
 			"list",
 			Builtin::new_value(
 				Signature::returning(&Type::List).with_trailing(&Type::Any),
-				|_, args| Ok(Value::List(args.iter().cloned().cloned().collect())),
+				|_, args| Ok(Value::List(args.iter().cloned().collect())),
 			),
 		)
 	}

@@ -94,13 +94,10 @@ impl Callable for Method {
 	fn call(
 		&self,
 		ctx: &EvalContext,
-		args: &[(&String, &Value)],
-		named_trailing: &[(&String, &Value)],
+		args: &[Value],
+		named_trailing: &[(&String, Value)],
 	) -> EvalResult {
-		let arg_types = args
-			.iter()
-			.map(|(_, a)| a.runtime_type())
-			.collect::<Vec<_>>();
+		let arg_types = args.iter().map(|a| a.runtime_type()).collect::<Vec<_>>();
 
 		if let Some(callable) = self.resolve(&arg_types) {
 			callable.call(ctx, args, named_trailing)
