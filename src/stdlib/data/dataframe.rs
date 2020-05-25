@@ -43,7 +43,7 @@ pub fn df_to_string(df: &DataFrame) -> String {
 						DataType::Float64 => array_val!(Float64Array, col, row_idx).to_string(),
 						DataType::Boolean => array_val!(BooleanArray, col, row_idx).to_string(),
 						DataType::Utf8 => array_val!(StringArray, col, row_idx).to_string(),
-						_ => "unhandled type".to_string(),
+						_ => unreachable!(),
 					}
 				};
 				row.push(Cell::new(&val_str));
@@ -58,6 +58,7 @@ pub fn df_to_string(df: &DataFrame) -> String {
 pub struct DataFrame {
 	batches: Vec<RecordBatch>,
 	num_rows: i64,
+	num_cols: i64,
 }
 
 impl NativeType for DataFrame {
@@ -69,10 +70,19 @@ impl NativeType for DataFrame {
 impl DataFrame {
 	pub fn new(batches: Vec<RecordBatch>) -> Self {
 		let num_rows = batches.iter().map(|b| b.num_rows() as i64).sum();
-		DataFrame { batches, num_rows }
+		let num_cols = batches[0].num_columns() as i64;
+		DataFrame {
+			batches,
+			num_rows,
+			num_cols,
+		}
 	}
 
 	pub fn num_rows(&self) -> i64 {
 		self.num_rows
+	}
+
+	pub fn num_cols(&self) -> i64 {
+		self.num_cols
 	}
 }

@@ -59,5 +59,17 @@ fn test_data_sqlite() {
 			),
 			Value::Int(1),
 		),
+		(
+			&with_table_bootstrap(r#"test_table |> select(age) |> collect() |> num_cols()"#),
+			Value::Int(1),
+		),
+		(
+			&with_table_bootstrap(r#"test_table |> select(age, name) |> collect() |> num_cols()"#),
+			Value::Int(2),
+		),
+		(
+			&with_table_bootstrap(r#"test_table |> collect() |> num_cols()"#),
+			Value::Int(2),
+		),
 	]);
 }

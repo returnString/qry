@@ -120,3 +120,37 @@ impl PipelineStep for FilterStep {
 		}))
 	}
 }
+
+#[derive(Clone)]
+pub struct SelectStep {
+	pub ctx: EvalContext,
+	pub cols: Vec<Syntax>,
+}
+
+impl PipelineStep for SelectStep {
+	fn render(&self, state: RenderState) -> SqlResult<RenderState> {
+		let col_exprs = self
+			.cols
+			.iter()
+			.map(|c| expr_to_sql(&self.ctx, c, &state.metadata))
+			.collect::<SqlResult<Vec<_>>>()?;
+
+		let col_names = col_exprs.iter().map(|e| e.text.clone()).collect::<Vec<_>>();
+
+		let new_col_types = state
+			.metadata
+			.col_types
+			.clone()
+			.into_iter()
+			.filter(|(k, _)| col_names.contains(k))
+			.collect::<HashMap<_, _>>();
+
+		let select = col_names.join(", ");
+		Ok(state.wrap(
+			SqlMetadata {
+				col_types: new_col_types,
+			},
+			|sub| format!("select {} from {}", select, sub),
+		))
+	}
+}
