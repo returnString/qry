@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct Method {
+	name: String,
 	signature: Signature,
 	impls: HashMap<Vec<Type>, Rc<dyn Callable>>,
 	fixed_return_type: Option<Type>,
@@ -15,6 +16,7 @@ pub type MethodPtr = Rc<RefCell<Method>>;
 
 impl Method {
 	pub fn new(
+		name: &str,
 		dispatch_param_names: &[&str],
 		fixed_return_type: Option<Type>,
 		default_impl: Option<Rc<dyn Callable>>,
@@ -28,6 +30,7 @@ impl Method {
 			.collect::<Vec<_>>();
 
 		Rc::new(RefCell::new(Self {
+			name: name.into(),
 			fixed_return_type: fixed_return_type.clone(),
 			signature: Signature {
 				// FIXME: need a better placeholder for methods with varying return types
@@ -39,6 +42,10 @@ impl Method {
 			impls: Default::default(),
 			default_impl,
 		}))
+	}
+
+	pub fn name(&self) -> &str {
+		&self.name
 	}
 
 	fn get_sig_key(&self, types: &[Type]) -> Vec<Type> {

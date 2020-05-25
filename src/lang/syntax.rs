@@ -20,27 +20,6 @@ pub enum BinaryOperator {
 	Or,
 }
 
-impl BinaryOperator {
-	pub fn name(self) -> Option<&'static str> {
-		match self {
-			Self::Add => Some("add"),
-			Self::Sub => Some("sub"),
-			Self::Mul => Some("mul"),
-			Self::Div => Some("div"),
-			Self::Access => Some("access"),
-			Self::Equal => Some("equal"),
-			Self::NotEqual => Some("notequal"),
-			Self::Lt => Some("lte"),
-			Self::Lte => Some("lte"),
-			Self::Gt => Some("gt"),
-			Self::Gte => Some("gte"),
-			Self::And => Some("and"),
-			Self::Or => Some("or"),
-			Self::LAssign | Self::RAssign | Self::Pipe => None,
-		}
-	}
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UnaryOperator {
 	Negate,

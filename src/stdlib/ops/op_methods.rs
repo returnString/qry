@@ -12,18 +12,14 @@ pub fn env() -> EnvironmentPtr {
 		let mut env = env.borrow_mut();
 
 		BINOP_LOOKUP.with(|m| {
-			for (k, v) in m {
-				if let Some(name) = k.name() {
-					env.update(name, Value::Method(v.clone()));
-				}
+			for v in m.values() {
+				env.update(v.borrow().name(), Value::Method(v.clone()));
 			}
 		});
 
 		UNOP_LOOKUP.with(|m| {
-			for (k, v) in m {
-				if let Some(name) = k.name() {
-					env.update(name, Value::Method(v.clone()));
-				}
+			for v in m.values() {
+				env.update(v.borrow().name(), Value::Method(v.clone()));
 			}
 		});
 	}
@@ -160,7 +156,7 @@ thread_local! {
 			}
 		});
 
-		let to_string = Method::new(&["val"], Some(Type::String), Some(to_string_fallback));
+		let to_string = Method::new("to_string", &["val"], Some(Type::String), Some(to_string_fallback));
 
 		{
 			let mut to_string = to_string.borrow_mut();
@@ -179,24 +175,24 @@ thread_local! {
 	#[allow(clippy::float_cmp)] // this is invoked by the Float == Float method
 	pub static BINOP_LOOKUP: HashMap<BinaryOperator, MethodPtr> = {
 		let mut m = HashMap::new();
-		let mut new_binop = |op| {
-			let method = Method::new(&["a", "b"], None, None);
+		let mut new_binop = |name, op| {
+			let method = Method::new(name, &["a", "b"], None, None);
 			m.insert(op, method.clone());
 			method
 		};
 
-		let add = new_binop(BinaryOperator::Add);
-		new_binop(BinaryOperator::Sub);
-		new_binop(BinaryOperator::Mul);
-		new_binop(BinaryOperator::Div);
-		let equal = new_binop(BinaryOperator::Equal);
-		let not_equal = new_binop(BinaryOperator::NotEqual);
-		new_binop(BinaryOperator::Lt);
-		new_binop(BinaryOperator::Lte);
-		new_binop(BinaryOperator::Gt);
-		new_binop(BinaryOperator::Gte);
-		let and = new_binop(BinaryOperator::And);
-		let or = new_binop(BinaryOperator::Or);
+		let add = new_binop("add", BinaryOperator::Add);
+		new_binop("sub", BinaryOperator::Sub);
+		new_binop("mul", BinaryOperator::Mul);
+		new_binop("div", BinaryOperator::Div);
+		let equal = new_binop("equal", BinaryOperator::Equal);
+		let not_equal = new_binop("not_equal", BinaryOperator::NotEqual);
+		new_binop("lt", BinaryOperator::Lt);
+		new_binop("lte", BinaryOperator::Lte);
+		new_binop("gt", BinaryOperator::Gt);
+		new_binop("gte", BinaryOperator::Gte);
+		let and = new_binop("and", BinaryOperator::And);
+		let or = new_binop("or", BinaryOperator::Or);
 
 		{
 			numeric_binops!(m, Int, Int, Int, i64);
@@ -225,14 +221,14 @@ thread_local! {
 
 	pub static UNOP_LOOKUP: HashMap<UnaryOperator, MethodPtr> = {
 		let mut m = HashMap::new();
-		let mut new_unop = |op| {
-			let method = Method::new(&["a"], None, None);
+		let mut new_unop = |name, op| {
+			let method = Method::new(name, &["a"], None, None);
 			m.insert(op, method.clone());
 			method
 		};
 
-		let negate = new_unop(UnaryOperator::Negate);
-		let minus = new_unop(UnaryOperator::Minus);
+		let negate = new_unop("negate", UnaryOperator::Negate);
+		let minus = new_unop("minus", UnaryOperator::Minus);
 
 		let mut negate = negate.borrow_mut();
 		negate.register(unop!(Bool, Bool, |a: bool| !a));
