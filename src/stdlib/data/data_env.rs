@@ -67,7 +67,7 @@ pub fn env() -> EnvironmentPtr {
 				Signature::returning(&Type::String).param("pipeline", pipeline_type),
 				|_, args| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
-					let state = pipeline.run()?;
+					let state = pipeline.generate()?;
 					Ok(Value::String(state.query.into()))
 				},
 			),
