@@ -16,11 +16,9 @@ pub fn env() -> EnvironmentPtr {
 	let env = Environment::new("core");
 	{
 		let mut env = env.borrow_mut();
-		env.update("Null", Value::Type(Type::Null));
-		env.update("Int", Value::Type(Type::Int));
-		env.update("Float", Value::Type(Type::Float));
-		env.update("String", Value::Type(Type::String));
-		env.update("Bool", Value::Type(Type::Bool));
+		for t in &[Type::Null, Type::Int, Type::Float, Type::String, Type::Bool] {
+			env.update(t.name(), Value::Type(t.clone()));
+		}
 
 		RUNTIME_OPS.with(|o| {
 			env.update("to_string", Value::Method(o.to_string.clone()));
