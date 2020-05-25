@@ -50,12 +50,8 @@ impl Signature {
 
 pub trait Callable {
 	fn signature(&self) -> &Signature;
-	fn call(
-		&self,
-		ctx: &EvalContext,
-		args: &[Value],
-		named_varargs: &[(&String, Value)],
-	) -> EvalResult;
+	fn call(&self, ctx: &EvalContext, args: &[Value], named_trailing: &[(&str, Value)])
+		-> EvalResult;
 }
 
 pub fn eval_callable(

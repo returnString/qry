@@ -27,7 +27,7 @@ pub fn env() -> EnvironmentPtr {
 				Signature::returning(&Type::Int)
 					.param("connection", connection_type)
 					.param("query", &Type::String),
-				|_, args| {
+				|_, args, _| {
 					let conn = args[0].as_native::<Connection>();
 					let query = args[1].as_string();
 					Ok(Value::Int(conn.conn_impl.execute(query)?))
@@ -41,7 +41,7 @@ pub fn env() -> EnvironmentPtr {
 				Signature::returning(pipeline_type)
 					.param("connection", connection_type)
 					.param("table", &Type::String),
-				|_, args| {
+				|_, args, _| {
 					let conn = args[0].as_native::<Connection>();
 					let table = args[1].as_string();
 					Ok(Value::new_native(QueryPipeline::new(conn, table)))
@@ -53,7 +53,7 @@ pub fn env() -> EnvironmentPtr {
 			"collect",
 			Builtin::new_value(
 				Signature::returning(dataframe_type).param("pipeline", pipeline_type),
-				|_, args| {
+				|_, args, _| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
 					let batch = pipeline.collect()?;
 					let df = DataFrame::new(vec![batch]);
@@ -66,7 +66,7 @@ pub fn env() -> EnvironmentPtr {
 			"render",
 			Builtin::new_value(
 				Signature::returning(&Type::String).param("pipeline", pipeline_type),
-				|_, args| {
+				|_, args, _| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
 					let state = pipeline.generate()?;
 					Ok(Value::String(state.query.into()))
@@ -80,7 +80,7 @@ pub fn env() -> EnvironmentPtr {
 				Signature::returning(pipeline_type)
 					.param("pipeline", pipeline_type)
 					.param("expr", &Type::SyntaxPlaceholder),
-				|ctx, args| {
+				|ctx, args, _| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
 					let predicate = args[1].as_syntax();
 					let step = FilterStep {
@@ -98,7 +98,7 @@ pub fn env() -> EnvironmentPtr {
 				Signature::returning(pipeline_type)
 					.param("pipeline", pipeline_type)
 					.with_trailing(&Type::SyntaxPlaceholder),
-				|ctx, args| {
+				|ctx, args, _| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
 					let cols = args[1..]
 						.iter()
@@ -118,7 +118,7 @@ pub fn env() -> EnvironmentPtr {
 			"num_rows",
 			Builtin::new_value(
 				Signature::returning(&Type::Int).param("df", dataframe_type),
-				|_, args| {
+				|_, args, _| {
 					let df = args[0].as_native::<DataFrame>();
 					Ok(Value::Int(df.num_rows()))
 				},
@@ -129,7 +129,7 @@ pub fn env() -> EnvironmentPtr {
 			"num_cols",
 			Builtin::new_value(
 				Signature::returning(&Type::Int).param("df", dataframe_type),
-				|_, args| {
+				|_, args, _| {
 					let df = args[0].as_native::<DataFrame>();
 					Ok(Value::Int(df.num_cols()))
 				},
@@ -141,7 +141,7 @@ pub fn env() -> EnvironmentPtr {
 		let mut to_string = o.to_string.borrow_mut();
 		to_string.register(Builtin::new(
 			Signature::returning(&Type::String).param("obj", connection_type),
-			|_, args| {
+			|_, args, _| {
 				Ok(Value::String(
 					format!("Connection: {}", args[0].as_native::<Connection>().driver).into_boxed_str(),
 				))
@@ -150,7 +150,7 @@ pub fn env() -> EnvironmentPtr {
 
 		to_string.register(Builtin::new(
 			Signature::returning(&Type::String).param("obj", dataframe_type),
-			|_, args| {
+			|_, args, _| {
 				let df = args[0].as_native::<DataFrame>();
 				Ok(Value::String(df_to_string(&df).into_boxed_str()))
 			},
@@ -158,7 +158,7 @@ pub fn env() -> EnvironmentPtr {
 
 		to_string.register(Builtin::new(
 			Signature::returning(&Type::String).param("obj", pipeline_type),
-			|_, args| {
+			|_, args, _| {
 				let pipeline = args[0].as_native::<QueryPipeline>();
 				Ok(Value::String(
 					format!("QueryPipeline ({} steps)", pipeline.steps.len()).into_boxed_str(),

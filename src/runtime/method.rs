@@ -95,7 +95,7 @@ impl Callable for Method {
 		&self,
 		ctx: &EvalContext,
 		args: &[Value],
-		named_trailing: &[(&String, Value)],
+		named_trailing: &[(&str, Value)],
 	) -> EvalResult {
 		let arg_types = args.iter().map(|a| a.runtime_type()).collect::<Vec<_>>();
 

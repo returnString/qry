@@ -32,7 +32,7 @@ macro_rules! binop {
 			Signature::returning(&Type::$return_type)
 				.param("a", &Type::$lhs_type)
 				.param("b", &Type::$rhs_type),
-			|_, args| match (&args[0], &args[1]) {
+			|_, args, _| match (&args[0], &args[1]) {
 				(Value::$lhs_type(a), Value::$rhs_type(b)) => {
 					Ok(Value::$return_type($builder(a.clone(), b.clone())))
 				}
@@ -114,7 +114,7 @@ macro_rules! unop {
 	($target_type: ident, $return_type: ident, $builder: expr) => {
 		Builtin::new(
 			Signature::returning(&Type::$return_type).param("a", &Type::$target_type),
-			|_, args| match &args[0] {
+			|_, args, _| match &args[0] {
 				Value::$target_type(a) => Ok(Value::$return_type($builder(a.clone()))),
 				_ => unreachable!(),
 			},
@@ -137,7 +137,7 @@ thread_local! {
 			to_string.register(unop!(Int, String, |a: i64| a.to_string().into_boxed_str()));
 			to_string.register(unop!(Float, String, |a: f64| format!("{:?}", a).into_boxed_str()));
 			to_string.register(unop!(Bool, String, |a: bool| a.to_string().into_boxed_str()));
-			to_string.register(Builtin::new(Signature::returning(&Type::String).param("obj", &Type::Method), |_, args| {
+			to_string.register(Builtin::new(Signature::returning(&Type::String).param("obj", &Type::Method), |_, args, _| {
 				let method_ptr = args[0].as_method();
 				let method = method_ptr.borrow();
 				let signatures = method.supported_signatures().map(|s| {
@@ -147,7 +147,7 @@ thread_local! {
 
 				Ok(Value::String(format!("method '{}' with impls:\n{}", method.name(), signatures).into_boxed_str()))
 			}));
-			to_string.register(Builtin::new(Signature::returning(&Type::String).param("obj", &Type::Type), |_, args| {
+			to_string.register(Builtin::new(Signature::returning(&Type::String).param("obj", &Type::Type), |_, args, _| {
 				let type_val = args[0].as_type();
 				Ok(Value::String(type_val.name().into()))
 			}));

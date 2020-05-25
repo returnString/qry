@@ -62,7 +62,7 @@ impl Callable for Function {
 		&self.signature
 	}
 
-	fn call(&self, ctx: &EvalContext, args: &[Value], _: &[(&String, Value)]) -> EvalResult {
+	fn call(&self, ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult {
 		let func_body_env = self.env.borrow().child("funceval");
 
 		for (value, param) in args.iter().zip(&self.signature.params) {

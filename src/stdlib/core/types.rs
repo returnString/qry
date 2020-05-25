@@ -1,16 +1,5 @@
-use crate::runtime::{
-	Builtin, Environment, EnvironmentPtr, EvalContext, EvalResult, Signature, Type, Value,
-};
+use crate::runtime::{Builtin, Environment, EnvironmentPtr, Signature, Type, Value};
 use crate::stdlib::ops::RUNTIME_OPS;
-
-fn typeof_func(_: &EvalContext, args: &[Value]) -> EvalResult {
-	let target = &args[0];
-	Ok(Value::Type(target.runtime_type()))
-}
-
-fn parse_func(_: &EvalContext, args: &[Value]) -> EvalResult {
-	Ok(args[0].clone())
-}
 
 pub fn env() -> EnvironmentPtr {
 	let env = Environment::new("core");
@@ -35,7 +24,7 @@ pub fn env() -> EnvironmentPtr {
 			"typeof",
 			Builtin::new_value(
 				Signature::returning(&Type::Type).param("obj", &Type::Any),
-				typeof_func,
+				|_, args, _| Ok(Value::Type(args[0].runtime_type())),
 			),
 		);
 
@@ -43,7 +32,7 @@ pub fn env() -> EnvironmentPtr {
 			"parse",
 			Builtin::new_value(
 				Signature::returning(&Type::Syntax).param("code", &Type::SyntaxPlaceholder),
-				parse_func,
+				|_, args, _| Ok(args[0].clone()),
 			),
 		);
 
@@ -51,7 +40,7 @@ pub fn env() -> EnvironmentPtr {
 			"list",
 			Builtin::new_value(
 				Signature::returning(&Type::List).with_trailing(&Type::Any),
-				|_, args| Ok(Value::List(args.to_vec())),
+				|_, args, _| Ok(Value::List(args.to_vec())),
 			),
 		)
 	}
