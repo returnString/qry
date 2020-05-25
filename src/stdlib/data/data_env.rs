@@ -62,6 +62,18 @@ pub fn env() -> EnvironmentPtr {
 		);
 
 		env.update(
+			"render",
+			Builtin::new_value(
+				Signature::returning(&Type::String).param("pipeline", pipeline_type),
+				|_, args| {
+					let pipeline = args[0].as_native::<QueryPipeline>();
+					let state = pipeline.run()?;
+					Ok(Value::String(state.query.into()))
+				},
+			),
+		);
+
+		env.update(
 			"filter",
 			Builtin::new_value(
 				Signature::returning(pipeline_type)

@@ -28,7 +28,7 @@ impl QueryPipeline {
 		ret
 	}
 
-	pub fn collect(&self) -> SqlResult<RecordBatch> {
+	pub fn run(&self) -> SqlResult<RenderState> {
 		let mut state = RenderState {
 			conn: self.conn.clone(),
 			metadata: SqlMetadata {
@@ -42,6 +42,11 @@ impl QueryPipeline {
 			state = step.render(state)?;
 		}
 
+		Ok(state)
+	}
+
+	pub fn collect(&self) -> SqlResult<RecordBatch> {
+		let state = self.run()?;
 		self.conn.conn_impl.collect(&state.query, state.metadata)
 	}
 }
@@ -51,7 +56,7 @@ pub struct RenderState {
 	pub conn: Rc<Connection>,
 	pub metadata: SqlMetadata,
 	counter: Rc<AtomicI64>,
-	query: String,
+	pub query: String,
 }
 
 impl RenderState {
