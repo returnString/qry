@@ -23,6 +23,7 @@ pub enum Value {
 	Library(EnvironmentPtr),
 	Syntax(Box<Syntax>),
 	Native(NativeWrapper),
+	List(Vec<Value>),
 }
 
 impl Value {
@@ -40,6 +41,7 @@ impl Value {
 			Self::Library(_) => Type::Library,
 			Self::Syntax(_) => Type::Syntax,
 			Self::Native(w) => Type::Native(w.descriptor.clone()),
+			Self::List(_) => Type::List,
 		}
 	}
 
@@ -89,6 +91,13 @@ impl Value {
 		}
 	}
 
+	pub fn as_list(&self) -> &[Value] {
+		match self {
+			Self::List(l) => &l,
+			_ => panic!("value is not a list"),
+		}
+	}
+
 	pub fn new_native<T: 'static + NativeType>(obj: T) -> Value {
 		Value::Native(NativeWrapper {
 			obj: Rc::new(obj),
@@ -109,6 +118,7 @@ impl PartialEq<Value> for Value {
 			(Value::String(a), Value::String(b)) => a == b,
 			(Value::Type(a), Value::Type(b)) => a == b,
 			(Value::Syntax(a), Value::Syntax(b)) => a == b,
+			(Value::List(a), Value::List(b)) => a == b,
 			_ => false,
 		}
 	}

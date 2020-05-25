@@ -1,6 +1,6 @@
 use crate::lang::{BinaryOperator, UnaryOperator};
 use crate::runtime::{
-	Builtin, Environment, EnvironmentPtr, Method, MethodPtr, Parameter, Signature, Type, Value,
+	Builtin, Environment, EnvironmentPtr, Method, MethodPtr, Signature, Type, Value,
 };
 use std::collections::HashMap;
 
@@ -29,21 +29,9 @@ pub fn env() -> EnvironmentPtr {
 macro_rules! binop {
 	($lhs_type: ident, $rhs_type: ident, $return_type: ident, $builder: expr) => {
 		Builtin::new(
-			Signature {
-				params: vec![
-					Parameter {
-						name: "a".to_string(),
-						param_type: Type::$lhs_type,
-					},
-					Parameter {
-						name: "b".to_string(),
-						param_type: Type::$rhs_type,
-					},
-				],
-				return_type: Type::$return_type,
-				with_trailing: false,
-				with_named_trailing: false,
-			},
+			Signature::returning(&Type::$return_type)
+				.param("a", &Type::$lhs_type)
+				.param("b", &Type::$rhs_type),
 			|_, args| match (&args[0], &args[1]) {
 				(Value::$lhs_type(a), Value::$rhs_type(b)) => {
 					Ok(Value::$return_type($builder(a.clone(), b.clone())))
@@ -125,15 +113,7 @@ macro_rules! numeric_binops {
 macro_rules! unop {
 	($target_type: ident, $return_type: ident, $builder: expr) => {
 		Builtin::new(
-			Signature {
-				params: vec![Parameter {
-					name: "a".to_string(),
-					param_type: Type::$target_type,
-				}],
-				return_type: Type::$return_type,
-				with_trailing: false,
-				with_named_trailing: false,
-			},
+			Signature::returning(&Type::$return_type).param("a", &Type::$target_type),
 			|_, args| match &args[0] {
 				Value::$target_type(a) => Ok(Value::$return_type($builder(a.clone()))),
 				_ => unreachable!(),

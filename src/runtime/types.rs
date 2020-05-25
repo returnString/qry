@@ -2,6 +2,7 @@ use std::any::TypeId;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Type {
+	Any,
 	Null,
 	Int,
 	Float,
@@ -16,6 +17,7 @@ pub enum Type {
 	SyntaxPlaceholder,
 	MethodDispatchPlaceholder,
 	Native(Box<NativeDescriptor>),
+	List,
 }
 
 impl Type {
@@ -25,6 +27,7 @@ impl Type {
 
 	pub fn name(&self) -> &str {
 		match self {
+			Self::Any => "Any",
 			Self::Null => "Null",
 			Self::Int => "Int",
 			Self::Float => "Float",
@@ -39,6 +42,7 @@ impl Type {
 			Self::SyntaxPlaceholder => "SyntaxPlaceholder",
 			Self::MethodDispatchPlaceholder => "MethodDispatchPlaceholder",
 			Self::Native(d) => d.name,
+			Self::List => "List",
 		}
 	}
 }

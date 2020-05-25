@@ -1,5 +1,5 @@
 use crate::runtime::{
-	Builtin, Environment, EnvironmentPtr, EvalContext, EvalResult, Parameter, Signature, Type, Value,
+	Builtin, Environment, EnvironmentPtr, EvalContext, EvalResult, Signature, Type, Value,
 };
 use crate::stdlib::ops::RUNTIME_OPS;
 
@@ -16,7 +16,14 @@ pub fn env() -> EnvironmentPtr {
 	let env = Environment::new("core");
 	{
 		let mut env = env.borrow_mut();
-		for t in &[Type::Null, Type::Int, Type::Float, Type::String, Type::Bool] {
+		for t in &[
+			Type::Null,
+			Type::Int,
+			Type::Float,
+			Type::String,
+			Type::Bool,
+			Type::List,
+		] {
 			env.update(t.name(), Value::Type(t.clone()));
 		}
 
@@ -27,15 +34,7 @@ pub fn env() -> EnvironmentPtr {
 		env.update(
 			"typeof",
 			Builtin::new_value(
-				Signature {
-					params: vec![Parameter {
-						name: "obj".to_string(),
-						param_type: Type::Null,
-					}],
-					return_type: Type::Type,
-					with_trailing: false,
-					with_named_trailing: false,
-				},
+				Signature::returning(&Type::Type).param("obj", &Type::Any),
 				typeof_func,
 			),
 		);
@@ -43,18 +42,18 @@ pub fn env() -> EnvironmentPtr {
 		env.update(
 			"parse",
 			Builtin::new_value(
-				Signature {
-					params: vec![Parameter {
-						name: "code".to_string(),
-						param_type: Type::SyntaxPlaceholder,
-					}],
-					return_type: Type::Syntax,
-					with_trailing: false,
-					with_named_trailing: false,
-				},
+				Signature::returning(&Type::Syntax).param("code", &Type::SyntaxPlaceholder),
 				parse_func,
 			),
 		);
+
+		env.update(
+			"list",
+			Builtin::new_value(
+				Signature::returning(&Type::List).with_trailing(&Type::Any),
+				|_, args| Ok(Value::List(args.iter().cloned().cloned().collect())),
+			),
+		)
 	}
 	env
 }

@@ -36,8 +36,8 @@ impl Method {
 				// FIXME: need a better placeholder for methods with varying return types
 				return_type: fixed_return_type.unwrap_or(Type::Null),
 				params,
-				with_trailing: false,
-				with_named_trailing: false,
+				trailing_type: None,
+				named_trailing_type: None,
 			},
 			impls: Default::default(),
 			default_impl,

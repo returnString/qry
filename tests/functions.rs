@@ -23,6 +23,15 @@ fn test_functions() {
 			"parse(x + 1)",
 			Value::Syntax(Box::new(parse("x + 1").unwrap()[0].clone())),
 		),
+		("list()", Value::List(vec![])),
+		(
+			r#"list(1, 2.0, "test string")"#,
+			Value::List(vec![
+				Value::Int(1),
+				Value::Float(2.0),
+				Value::String("test string".into()),
+			]),
+		),
 	]);
 }
 

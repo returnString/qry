@@ -40,8 +40,8 @@ pub fn eval_function(
 		body: body.to_vec(),
 		signature: Signature {
 			params,
-			with_trailing: false,
-			with_named_trailing: false,
+			trailing_type: None,
+			named_trailing_type: None,
 			return_type: match eval(ctx, return_type)? {
 				Value::Type(t) => t,
 				_ => return Err(EvalError::NotType),
