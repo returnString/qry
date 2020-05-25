@@ -7,16 +7,7 @@ use rustyline::Editor;
 fn print_value(ctx: &EvalContext, value: &Value) {
 	let to_string = RUNTIME_OPS.with(|o| o.to_string.clone());
 
-	let type_str = to_string
-		.borrow()
-		.call(
-			&ctx,
-			&[(&"a".to_string(), &Value::Type(value.runtime_type()))],
-			&[],
-		)
-		.unwrap();
-
-	print!("({})", type_str.as_string());
+	print!("({})", value.runtime_type().name());
 
 	if let Ok(value_str) = to_string
 		.borrow()
