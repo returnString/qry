@@ -113,6 +113,29 @@ pub fn expr_to_sql(
 				None => Err(SqlError::SyntaxError),
 			}
 		}
+		Syntax::Switch { target, cases } => {
+			let target_val = expr_to_sql(ctx, target, metadata)?;
+
+			let whens = cases
+				.iter()
+				.map(|c| {
+					let case_val = expr_to_sql(ctx, &c.expr, metadata)?;
+					let return_val = expr_to_sql(ctx, &c.returns, metadata)?;
+					Ok(format!(
+						"when {} == {} then {}",
+						target_val.text, case_val.text, return_val.text,
+					))
+				})
+				.collect::<SqlResult<Vec<_>>>()?;
+
+			let text = format!("case {} end", whens.join(" "));
+
+			// TODO: validate consistency of return types
+			// for now, just use the first
+			let sql_type = (expr_to_sql(ctx, &cases[0].returns, metadata)?).sql_type;
+
+			Ok(SqlExpression { text, sql_type })
+		}
 		_ => Err(SqlError::SyntaxError),
 	}
 }
