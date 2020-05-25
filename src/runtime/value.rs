@@ -3,6 +3,31 @@ use crate::lang::Syntax;
 use std::any::{Any, TypeId};
 use std::rc::Rc;
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+pub struct NativeDescriptor {
+	id: TypeId,
+	name: &'static str,
+}
+
+impl NativeDescriptor {
+	pub fn of<T: 'static + NativeType>() -> NativeDescriptor {
+		NativeDescriptor {
+			id: TypeId::of::<T>(),
+			name: T::name(),
+		}
+	}
+}
+
+pub trait NativeType {
+	fn name() -> &'static str;
+}
+
+#[derive(Debug, Clone)]
+pub struct NativeWrapper {
+	descriptor: Box<NativeDescriptor>,
+	obj: Rc<dyn Any>,
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Type {
 	Null,
@@ -18,7 +43,13 @@ pub enum Type {
 	Syntax,
 	SyntaxPlaceholder,
 	MethodDispatchPlaceholder,
-	Native(TypeId),
+	Native(Box<NativeDescriptor>),
+}
+
+impl Type {
+	pub fn new_native<T: 'static + NativeType>() -> Type {
+		Type::Native(Box::new(NativeDescriptor::of::<T>()))
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -34,7 +65,7 @@ pub enum Value {
 	Method(MethodPtr),
 	Library(EnvironmentPtr),
 	Syntax(Box<Syntax>),
-	Native(Rc<dyn Any>),
+	Native(NativeWrapper),
 }
 
 impl Value {
@@ -51,7 +82,7 @@ impl Value {
 			Self::Method(_) => Type::Method,
 			Self::Library(_) => Type::Library,
 			Self::Syntax(_) => Type::Syntax,
-			Self::Native(obj) => Type::Native((**obj).type_id()),
+			Self::Native(w) => Type::Native(w.descriptor.clone()),
 		}
 	}
 
@@ -59,8 +90,8 @@ impl Value {
 	where
 		T: Any,
 	{
-		if let Self::Native(obj) = self {
-			return obj.clone().downcast::<T>().unwrap();
+		if let Self::Native(w) = self {
+			return w.obj.clone().downcast::<T>().unwrap();
 		}
 
 		panic!("value is not a native type");
@@ -92,6 +123,13 @@ impl Value {
 			Self::Method(m) => m.clone(),
 			_ => panic!("value is not a method"),
 		}
+	}
+
+	pub fn new_native<T: 'static + NativeType>(obj: T) -> Value {
+		Value::Native(NativeWrapper {
+			obj: Rc::new(obj),
+			descriptor: Box::new(NativeDescriptor::of::<T>()),
+		})
 	}
 }
 

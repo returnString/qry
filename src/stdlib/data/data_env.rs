@@ -1,13 +1,12 @@
 use super::{connect_sqlite, df_to_string, Connection, DataFrame, FilterStep, QueryPipeline};
 use crate::runtime::{Builtin, Environment, EnvironmentPtr, Signature, Type, Value};
 use crate::stdlib::ops::RUNTIME_OPS;
-use std::any::TypeId;
 use std::rc::Rc;
 
 pub fn env() -> EnvironmentPtr {
-	let connection_type = &Type::Native(TypeId::of::<Connection>());
-	let pipeline_type = &Type::Native(TypeId::of::<QueryPipeline>());
-	let dataframe_type = &Type::Native(TypeId::of::<DataFrame>());
+	let connection_type = &Type::new_native::<Connection>();
+	let pipeline_type = &Type::new_native::<QueryPipeline>();
+	let dataframe_type = &Type::new_native::<DataFrame>();
 
 	let env = Environment::new("data");
 	{
@@ -43,7 +42,7 @@ pub fn env() -> EnvironmentPtr {
 				|_, args| {
 					let conn = args[0].as_native::<Connection>();
 					let table = args[1].as_string();
-					Ok(Value::Native(Rc::new(QueryPipeline::new(conn, table))))
+					Ok(Value::new_native(QueryPipeline::new(conn, table)))
 				},
 			),
 		);
@@ -56,7 +55,7 @@ pub fn env() -> EnvironmentPtr {
 					let pipeline = args[0].as_native::<QueryPipeline>();
 					let batch = pipeline.collect()?;
 					let df = DataFrame::new(vec![batch]);
-					Ok(Value::Native(Rc::new(df)))
+					Ok(Value::new_native(df))
 				},
 			),
 		);
@@ -86,7 +85,7 @@ pub fn env() -> EnvironmentPtr {
 						ctx: ctx.clone(),
 						predicate: predicate.clone(),
 					};
-					Ok(Value::Native(Rc::new(pipeline.add(Rc::new(step)))))
+					Ok(Value::new_native(pipeline.add(Rc::new(step))))
 				},
 			),
 		);

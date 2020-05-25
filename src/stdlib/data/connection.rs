@@ -1,4 +1,4 @@
-use crate::runtime::{EvalError, Type};
+use crate::runtime::{EvalError, NativeType, Type};
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
 use std::collections::HashMap;
@@ -39,6 +39,12 @@ pub trait ConnectionImpl {
 pub struct Connection {
 	pub driver: String,
 	pub conn_impl: Box<dyn ConnectionImpl>,
+}
+
+impl NativeType for Connection {
+	fn name() -> &'static str {
+		"Connection"
+	}
 }
 
 impl From<ArrowError> for SqlError {

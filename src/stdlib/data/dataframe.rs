@@ -1,3 +1,4 @@
+use crate::runtime::NativeType;
 use arrow::array::{BooleanArray, Float64Array, Int64Array, StringArray};
 use arrow::datatypes::DataType;
 use arrow::record_batch::RecordBatch;
@@ -57,6 +58,12 @@ pub fn df_to_string(df: &DataFrame) -> String {
 pub struct DataFrame {
 	batches: Vec<RecordBatch>,
 	num_rows: i64,
+}
+
+impl NativeType for DataFrame {
+	fn name() -> &'static str {
+		"DataFrame"
+	}
 }
 
 impl DataFrame {

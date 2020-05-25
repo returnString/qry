@@ -175,8 +175,8 @@ pub fn connect_sqlite(_: &EvalContext, args: &[&Value]) -> EvalResult {
 	let connstring = args[0].as_string();
 	let sqlite_conn = sqlite_connect_impl(connstring)?;
 
-	Ok(Value::Native(Rc::new(Connection {
+	Ok(Value::new_native(Connection {
 		driver: "sqlite".into(),
 		conn_impl: Box::new(SqliteConnectionImpl { conn: sqlite_conn }),
-	})))
+	}))
 }

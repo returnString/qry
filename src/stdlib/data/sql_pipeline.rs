@@ -1,6 +1,6 @@
 use super::{expr_to_sql, Connection, SqlMetadata, SqlResult};
 use crate::lang::Syntax;
-use crate::runtime::EvalContext;
+use crate::runtime::{EvalContext, NativeType};
 use arrow::record_batch::RecordBatch;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -10,6 +10,12 @@ use std::sync::atomic::{AtomicI64, Ordering};
 pub struct QueryPipeline {
 	conn: Rc<Connection>,
 	pub steps: Vec<Rc<dyn PipelineStep>>,
+}
+
+impl NativeType for QueryPipeline {
+	fn name() -> &'static str {
+		"QueryPipeline"
+	}
 }
 
 impl QueryPipeline {
