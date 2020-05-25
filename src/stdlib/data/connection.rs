@@ -41,12 +41,6 @@ pub struct Connection {
 	pub conn_impl: Box<dyn ConnectionImpl>,
 }
 
-impl Drop for Connection {
-	fn drop(&mut self) {
-		println!("connection is now dead")
-	}
-}
-
 impl From<ArrowError> for SqlError {
 	fn from(err: ArrowError) -> Self {
 		SqlError::ArrowError(err)
