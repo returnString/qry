@@ -11,7 +11,7 @@ fn main() {
 	let to_string = RUNTIME_OPS.with(|o| o.to_string.clone());
 
 	loop {
-		match rl.readline("qry> ") {
+		match rl.readline("> ") {
 			Ok(line) => match parse(&line) {
 				Ok(syntax) => match eval_multi(&ctx, &syntax) {
 					Ok(value) => {
