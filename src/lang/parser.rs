@@ -1,5 +1,4 @@
 use crate::lang::syntax::*;
-use std::collections::HashMap;
 
 fn unop(target: Syntax, op: UnaryOperator) -> Syntax {
 	Syntax::UnaryOp {
@@ -45,6 +44,12 @@ peg::parser! {
 		rule fn_anon_prefix() -> Option<String>
 			= "fn" { None }
 
+		rule named_arg() -> (Option<String>, Syntax)
+			= name:ident() _ "=" _ expr:expr() { (Some(name), expr) }
+
+		rule positional_arg() -> (Option<String>, Syntax)
+			= expr:expr() { (None, expr) }
+
 		// FIXME: add char escapes
 		rule string_contents() -> String
 			= s:$(!"\"" [_])* { s.iter().fold("".to_string(), |acc, val| format!("{}{}", acc, val)) }
@@ -89,11 +94,11 @@ peg::parser! {
 			--
 			"-" _ target:@ { unop(target, UnaryOperator::Minus) }
 			--
-			target:@ "(" _ args:expr() ** (_ "," _) ")" {
+			target:@ "(" _ args:(named_arg() / positional_arg()) ** (_ "," _) ")" {
 				Syntax::Call {
 					target: Box::new(target),
-					positional_args: args,
-					named_args: HashMap::new(),
+					positional_args: args.iter().filter(|(n, e)| n.is_none()).map(|(n, e)| e.clone()).collect(),
+					named_args: args.iter().filter(|(n, e)| n.is_some()).map(|(n, e)| (n.clone().unwrap(), e.clone())).collect(),
 				}
 			}
 			--
