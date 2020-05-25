@@ -48,6 +48,10 @@ impl Method {
 		&self.name
 	}
 
+	pub fn supported_signatures(&self) -> impl Iterator<Item = &Signature> {
+		self.impls.iter().map(|(_, v)| v.signature())
+	}
+
 	fn get_sig_key(&self, types: &[Type]) -> Vec<Type> {
 		types[..self.signature.params.len()].to_owned()
 	}

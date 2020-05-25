@@ -86,6 +86,13 @@ impl Value {
 			_ => panic!("value is not a bool"),
 		}
 	}
+
+	pub fn as_method(&self) -> MethodPtr {
+		match self {
+			Self::Method(m) => m.clone(),
+			_ => panic!("value is not a method"),
+		}
+	}
 }
 
 // FIXME: only used for unit tests

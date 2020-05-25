@@ -165,6 +165,16 @@ thread_local! {
 			to_string.register(unop!(Int, String, |a: i64| a.to_string().into_boxed_str()));
 			to_string.register(unop!(Float, String, |a: f64| format!("{:?}", a).into_boxed_str()));
 			to_string.register(unop!(Bool, String, |a: bool| a.to_string().into_boxed_str()));
+			to_string.register(Builtin::new(Signature::returning(&Type::String).param("obj", &Type::Method), |_, args| {
+				let method_ptr = args[0].as_method();
+				let method = method_ptr.borrow();
+				let signatures = method.supported_signatures().map(|s| {
+					let param_string = s.params.iter().map(|p| format!("{}: {:?}", p.name, p.param_type)).collect::<Vec<_>>().join(", ");
+					format!("({}) -> {:?}", param_string, s.return_type)
+				}).collect::<Vec<_>>().join("\n");
+
+				Ok(Value::String(format!("method '{}' with impls:\n{}", method.name(), signatures).into_boxed_str()))
+			}));
 		}
 
 		RuntimeOps {
