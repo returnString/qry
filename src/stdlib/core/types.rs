@@ -51,7 +51,7 @@ pub fn env() -> EnvironmentPtr {
 			"list",
 			Builtin::new_value(
 				Signature::returning(&Type::List).with_trailing(&Type::Any),
-				|_, args| Ok(Value::List(args.iter().cloned().collect())),
+				|_, args| Ok(Value::List(args.to_vec())),
 			),
 		)
 	}
