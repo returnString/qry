@@ -19,6 +19,28 @@ fn test_syntax() {
 		("\"😂\"", Value::String("😂".into())),
 		("x <- y <- 0", Value::Int(0)),
 		("0 -> y -> x", Value::Int(0)),
+		(
+			r#"switch 1 {
+				1 => "got one"
+			}"#,
+			Value::String("got one".into()),
+		),
+		(
+			r#"target <- 1
+			switch target {
+				2 => "got two"
+				1 => "got one"
+			}"#,
+			Value::String("got one".into()),
+		),
+		(
+			r#"
+			switch 1 {
+				2 => "nope"
+				3 => "nope"
+			}"#,
+			Value::Null(()),
+		),
 	]);
 }
 

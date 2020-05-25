@@ -79,6 +79,13 @@ impl Value {
 			_ => panic!("value is not an expression"),
 		}
 	}
+
+	pub fn as_bool(&self) -> bool {
+		match self {
+			Self::Bool(b) => *b,
+			_ => panic!("value is not a bool"),
+		}
+	}
 }
 
 // FIXME: only used for unit tests

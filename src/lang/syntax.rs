@@ -69,6 +69,12 @@ pub struct ParameterDef {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct SwitchCase {
+	pub expr: Syntax,
+	pub returns: Syntax,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Syntax {
 	Null,
 	Int(i64),
@@ -100,5 +106,9 @@ pub enum Syntax {
 		target: Box<Syntax>,
 		positional_args: Vec<Syntax>,
 		named_args: HashMap<String, Syntax>,
+	},
+	Switch {
+		target: Box<Syntax>,
+		cases: Vec<SwitchCase>,
 	},
 }

@@ -49,6 +49,9 @@ peg::parser! {
 		rule string_contents() -> String
 			= s:$(!"\"" [_])* { s.iter().fold("".to_string(), |acc, val| format!("{}{}", acc, val)) }
 
+		rule switch_case() -> SwitchCase
+			= expr:expr() _ "=>" _ returns:expr() { SwitchCase { expr, returns } }
+
 		rule expr() -> Syntax = precedence!{
 			lhs:@ _ "<-" _ rhs:(@) { binop(lhs, rhs, BinaryOperator::LAssign) }
 			--
@@ -99,7 +102,10 @@ peg::parser! {
 			"use" __ from:ident() ** "::" import:(import_named() / import_wildcard() / import_lib()) { Syntax::Use { from, import } }
 			"use" __ import:import_lib() { Syntax::Use { from: vec![], import } }
 			--
-			n:$(['0'..='9']+ "." ['0'..='9']*) { Syntax::Float(n.parse().unwrap()) }
+			"switch" _ target:expr() _ "{" _ cases:switch_case() ** _ _ "}" { Syntax::Switch { target: Box::new(target), cases } }
+			--
+			n:
+			$(['0'..='9']+ "." ['0'..='9']*) { Syntax::Float(n.parse().unwrap()) }
 			n:$(['0'..='9']+) { Syntax::Int(n.parse().unwrap()) }
 			"\"" s:string_contents() "\"" { Syntax::String(s) }
 			b:$("true" / "false") { Syntax::Bool(b == "true") }

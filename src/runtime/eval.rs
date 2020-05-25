@@ -219,5 +219,27 @@ pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			Value::Method(method) => eval_callable(ctx, &*method.borrow(), positional_args),
 			_ => Err(EvalError::NotCallable),
 		},
+		Syntax::Switch { target, cases } => {
+			let target_val = eval(ctx, target)?;
+			let mut ret = Value::Null(());
+			let eq_method = stdlib::ops::BINOP_LOOKUP.with(|m| m[&BinaryOperator::Equal].clone());
+			for case in cases {
+				let case_val = eval(ctx, &case.expr)?;
+				let eq_val = eq_method.borrow().call(
+					ctx,
+					&[
+						(&"a".to_string(), &target_val),
+						(&"b".to_string(), &case_val),
+					],
+					&[],
+				)?;
+
+				if eq_val.as_bool() {
+					ret = eval(ctx, &case.returns)?;
+					break;
+				}
+			}
+			Ok(ret)
+		}
 	}
 }
