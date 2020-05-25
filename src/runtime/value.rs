@@ -50,6 +50,25 @@ impl Type {
 	pub fn new_native<T: 'static + NativeType>() -> Type {
 		Type::Native(Box::new(NativeDescriptor::of::<T>()))
 	}
+
+	pub fn name(&self) -> &str {
+		match self {
+			Self::Null => "Null",
+			Self::Int => "Int",
+			Self::Float => "Float",
+			Self::Bool => "Bool",
+			Self::String => "String",
+			Self::Type => "Type",
+			Self::Function => "Function",
+			Self::Builtin => "Builtin",
+			Self::Method => "Method",
+			Self::Library => "Library",
+			Self::Syntax => "Syntax",
+			Self::SyntaxPlaceholder => "SyntaxPlaceholder",
+			Self::MethodDispatchPlaceholder => "MethodDispatchPlaceholder",
+			Self::Native(d) => d.name,
+		}
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -122,6 +141,13 @@ impl Value {
 		match self {
 			Self::Method(m) => m.clone(),
 			_ => panic!("value is not a method"),
+		}
+	}
+
+	pub fn as_type(&self) -> Type {
+		match self {
+			Self::Type(t) => t.clone(),
+			_ => panic!("value is not a type"),
 		}
 	}
 

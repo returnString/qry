@@ -175,6 +175,10 @@ thread_local! {
 
 				Ok(Value::String(format!("method '{}' with impls:\n{}", method.name(), signatures).into_boxed_str()))
 			}));
+			to_string.register(Builtin::new(Signature::returning(&Type::String).param("obj", &Type::Type), |_, args| {
+				let type_val = args[0].as_type();
+				Ok(Value::String(type_val.name().into()))
+			}));
 		}
 
 		RuntimeOps {
