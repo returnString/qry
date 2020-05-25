@@ -1,29 +1,42 @@
 use qry::lang::parse;
-use qry::runtime::{eval_multi, Callable, EvalContext};
+use qry::runtime::{eval_multi, Callable, EvalContext, Value};
 use qry::stdlib::ops::RUNTIME_OPS;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+
+fn print_value(ctx: &EvalContext, value: &Value) {
+	let to_string = RUNTIME_OPS.with(|o| o.to_string.clone());
+
+	let type_str = to_string
+		.borrow()
+		.call(
+			&ctx,
+			&[(&"a".to_string(), &Value::Type(value.runtime_type()))],
+			&[],
+		)
+		.unwrap();
+
+	print!("({})", type_str.as_string());
+
+	if let Ok(value_str) = to_string
+		.borrow()
+		.call(&ctx, &[(&"a".to_string(), &value)], &[])
+	{
+		print!(" {}", value_str.as_string());
+	}
+
+	println!();
+}
 
 fn main() {
 	let mut rl = Editor::<()>::new();
 	let ctx = EvalContext::new();
 
-	let to_string = RUNTIME_OPS.with(|o| o.to_string.clone());
-
 	loop {
 		match rl.readline("> ") {
 			Ok(line) => match parse(&line) {
 				Ok(syntax) => match eval_multi(&ctx, &syntax) {
-					Ok(value) => {
-						let value_str = to_string
-							.borrow()
-							.call(&ctx, &[(&"a".to_string(), &value)], &[]);
-
-						match value_str {
-							Ok(v) => println!("{}", v.as_string()),
-							Err(err) => println!("error rendering value: {:?}", err),
-						}
-					}
+					Ok(value) => print_value(&ctx, &value),
 					Err(err) => println!("runtime error: {:?}", err),
 				},
 				Err(err) => println!("parser error {:?}", err),
