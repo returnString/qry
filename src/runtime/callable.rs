@@ -1,4 +1,4 @@
-use super::{eval_in_env, EvalContext, EvalError, EvalResult, Type, Value};
+use super::{eval, EvalContext, EvalError, EvalResult, Type, Value};
 use crate::lang::Syntax;
 
 #[derive(Debug, Clone)]
@@ -60,7 +60,7 @@ pub fn eval_callable(
 		.zip(&sig.params)
 		.map(|(a, p)| match p.param_type {
 			Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(a.clone()))),
-			_ => eval_in_env(ctx, a),
+			_ => eval(ctx, a),
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 

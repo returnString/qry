@@ -1,5 +1,5 @@
 use qry::lang::parse;
-use qry::runtime::{eval, Callable, EvalContext};
+use qry::runtime::{eval_multi, Callable, EvalContext};
 use qry::stdlib::ops::RUNTIME_OPS;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -13,7 +13,7 @@ fn main() {
 	loop {
 		match rl.readline("qry> ") {
 			Ok(line) => match parse(&line) {
-				Ok(syntax) => match eval(&ctx, &syntax) {
+				Ok(syntax) => match eval_multi(&ctx, &syntax) {
 					Ok(value) => {
 						let value_str = to_string
 							.borrow()

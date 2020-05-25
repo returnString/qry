@@ -1,6 +1,6 @@
 use super::{
-	assign_value, eval_in_env, eval_in_env_multi, Callable, EnvironmentPtr, EvalContext, EvalError,
-	EvalResult, Parameter, Signature, Value,
+	assign_value, eval, eval_multi, Callable, EnvironmentPtr, EvalContext, EvalError, EvalResult,
+	Parameter, Signature, Value,
 };
 use crate::lang::{ParameterDef, Syntax};
 use std::rc::Rc;
@@ -21,7 +21,7 @@ pub fn eval_function(
 ) -> EvalResult {
 	let param_types = params
 		.iter()
-		.map(|p| match eval_in_env(ctx, &p.param_type)? {
+		.map(|p| match eval(ctx, &p.param_type)? {
 			Value::Type(t) => Ok(t),
 			_ => Err(EvalError::NotType),
 		})
@@ -42,7 +42,7 @@ pub fn eval_function(
 			params,
 			with_trailing: false,
 			with_named_trailing: false,
-			return_type: match eval_in_env(ctx, return_type)? {
+			return_type: match eval(ctx, return_type)? {
 				Value::Type(t) => t,
 				_ => return Err(EvalError::NotType),
 			},
@@ -74,6 +74,6 @@ impl Callable for Function {
 			func_body_env.borrow_mut().update(name, (*value).clone());
 		}
 
-		eval_in_env_multi(&ctx.child(func_body_env), &self.body)
+		eval_multi(&ctx.child(func_body_env), &self.body)
 	}
 }

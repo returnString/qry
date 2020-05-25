@@ -82,9 +82,7 @@ pub fn expr_to_sql(
 	metadata: &SqlMetadata,
 ) -> SqlResult<SqlExpression> {
 	match expr {
-		Syntax::Interpolate(contained_expr) => {
-			Ok(interpret_value(eval(ctx, &[(**contained_expr).clone()])?))
-		}
+		Syntax::Interpolate(contained_expr) => Ok(interpret_value(eval(ctx, contained_expr)?)),
 		Syntax::Null => Ok(null_literal()),
 		Syntax::String(s) => Ok(string_literal(&s)),
 		Syntax::Int(i) => Ok(int_literal(*i)),

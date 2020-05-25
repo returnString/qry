@@ -1,9 +1,9 @@
 use qry::lang::parse;
-use qry::runtime::{eval, EvalContext, EvalError, EvalResult, Value};
+use qry::runtime::{eval_multi, EvalContext, EvalError, EvalResult, Value};
 
 pub fn eval_src(src: &str) -> EvalResult {
-	let expr = parse(src).unwrap_or_else(|err| panic!("parse failed ({}): {:?}", src, err));
-	eval(&EvalContext::new(), &expr)
+	let exprs = parse(src).unwrap_or_else(|err| panic!("parse failed ({}): {:?}", src, err));
+	eval_multi(&EvalContext::new(), &exprs)
 }
 
 pub fn eval_expect_values(cases: &[(&str, Value)]) {

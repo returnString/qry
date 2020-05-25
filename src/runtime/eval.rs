@@ -25,7 +25,7 @@ pub fn assign_value(ctx: &EvalContext, name: &str, value: Value) -> EvalResult {
 fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult {
 	match dest {
 		Syntax::Ident(name) => {
-			let value = eval_in_env(ctx, src)?;
+			let value = eval(ctx, src)?;
 			assign_value(ctx, name, value)
 		}
 		_ => Err(EvalError::IllegalAssignment),
@@ -37,7 +37,7 @@ fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResul
 		if let Some(method) = m.get(&op) {
 			method
 				.borrow()
-				.call(ctx, &[(&"a".to_string(), &eval_in_env(ctx, target)?)], &[])
+				.call(ctx, &[(&"a".to_string(), &eval(ctx, target)?)], &[])
 		} else {
 			Err(EvalError::MethodNotImplemented)
 		}
@@ -55,7 +55,7 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 				return Err(EvalError::InvalidTypeForImport);
 			};
 
-			if let Value::Library(lib_env) = eval_in_env(ctx, lhs)? {
+			if let Value::Library(lib_env) = eval(ctx, lhs)? {
 				if let Some(val) = lib_env.borrow().get(rhs_ident) {
 					Ok(val)
 				} else {
@@ -74,7 +74,7 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 			} => {
 				let mut new_args = positional_args.clone();
 				new_args.insert(0, lhs.clone());
-				eval_in_env(
+				eval(
 					ctx,
 					&Syntax::Call {
 						target: target.clone(),
@@ -90,8 +90,8 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 				method.borrow().call(
 					ctx,
 					&[
-						(&"a".to_string(), &eval_in_env(ctx, lhs)?),
-						(&"b".to_string(), &eval_in_env(ctx, rhs)?),
+						(&"a".to_string(), &eval(ctx, lhs)?),
+						(&"b".to_string(), &eval(ctx, rhs)?),
 					],
 					&[],
 				)
@@ -177,15 +177,15 @@ impl EvalContext {
 	}
 }
 
-pub fn eval_in_env_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult {
+pub fn eval_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult {
 	let mut ret = Value::Null(());
 	for expr in exprs {
-		ret = eval_in_env(ctx, expr)?;
+		ret = eval(ctx, expr)?;
 	}
 	Ok(ret)
 }
 
-pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
+pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 	match expr {
 		Syntax::Int(val) => Ok(Value::Int(*val)),
 		Syntax::Float(val) => Ok(Value::Float(*val)),
@@ -213,15 +213,11 @@ pub fn eval_in_env(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			target,
 			positional_args,
 			named_args: _,
-		} => match eval_in_env(ctx, target)? {
+		} => match eval(ctx, target)? {
 			Value::Builtin(builtin) => eval_callable(ctx, &*builtin, positional_args),
 			Value::Function(func) => eval_callable(ctx, &*func, positional_args),
 			Value::Method(method) => eval_callable(ctx, &*method.borrow(), positional_args),
 			_ => Err(EvalError::NotCallable),
 		},
 	}
-}
-
-pub fn eval(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult {
-	eval_in_env_multi(&ctx, exprs)
 }
