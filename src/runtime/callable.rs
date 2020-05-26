@@ -1,6 +1,5 @@
 use super::{eval, EvalContext, EvalError, EvalResult, Type, Value};
 use crate::lang::Syntax;
-use std::iter::repeat;
 
 #[derive(Debug, Clone)]
 pub struct Parameter {
@@ -62,27 +61,26 @@ pub fn eval_callable(
 	let sig = callable.signature();
 	let num_supplied = positional.len();
 	let num_expected_min = sig.params.len();
-	if num_supplied < num_expected_min {
-		return Err(EvalError::ArgMismatch);
-	}
-
-	let mut param_vec = sig.params.clone();
-	if let Some(trailing_type) = &sig.trailing_type {
-		let trailing_param = Parameter {
-			name: "trailing".into(),
-			param_type: trailing_type.clone(),
-		};
-		param_vec.extend(repeat(trailing_param).take(num_supplied - num_expected_min));
-	} else if num_supplied > num_expected_min {
+	if num_supplied < num_expected_min
+		|| (sig.trailing_type.is_none() && num_supplied > num_expected_min)
+	{
 		return Err(EvalError::ArgMismatch);
 	}
 
 	let args = positional
 		.iter()
-		.zip(&param_vec)
-		.map(|(a, p)| match p.param_type {
-			Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(a.clone()))),
-			_ => eval(ctx, a),
+		.enumerate()
+		.map(|(i, s)| {
+			let param_type = if i < num_expected_min {
+				&sig.params[i].param_type
+			} else {
+				sig.trailing_type.as_ref().unwrap()
+			};
+
+			match param_type {
+				Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(s.clone()))),
+				_ => eval(ctx, s),
+			}
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 
