@@ -1,4 +1,4 @@
-use super::{eval_callable, eval_function, Callable, Environment, EnvironmentPtr, Value};
+use super::{eval_callable, eval_function, Callable, Environment, EnvironmentPtr, Type, Value};
 use crate::lang::syntax::*;
 use crate::stdlib;
 
@@ -13,6 +13,7 @@ pub enum EvalError {
 	ArgMismatch,
 	MethodNotImplemented,
 	UserCodeError(String),
+	TypeMismatch { expected: Type, actual: Type },
 }
 
 pub type EvalResult = Result<Value, EvalError>;

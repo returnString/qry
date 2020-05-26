@@ -12,6 +12,7 @@ pub fn env() -> EnvironmentPtr {
 			Type::String,
 			Type::Bool,
 			Type::List,
+			Type::Any,
 		] {
 			env.update(t.name(), Value::Type(t.clone()));
 		}

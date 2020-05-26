@@ -53,10 +53,21 @@ pub trait Callable {
 		-> EvalResult;
 }
 
+fn typecheck_val(val: Value, expected_type: &Type) -> EvalResult {
+	if expected_type == &Type::Any || expected_type == &val.runtime_type() {
+		Ok(val)
+	} else {
+		Err(EvalError::TypeMismatch {
+			expected: expected_type.clone(),
+			actual: val.runtime_type(),
+		})
+	}
+}
+
 fn eval_arg(ctx: &EvalContext, param_type: &Type, expr: &Syntax) -> EvalResult {
 	match param_type {
 		Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(expr.clone()))),
-		_ => Ok(eval(ctx, expr)?),
+		_ => typecheck_val(eval(ctx, expr)?, param_type),
 	}
 }
 
@@ -102,5 +113,6 @@ pub fn eval_callable(
 		})
 		.collect::<Result<Vec<_>, EvalError>>()?;
 
-	callable.call(ctx, &args, &named_args)
+	let ret = callable.call(ctx, &args, &named_args)?;
+	typecheck_val(ret, &sig.return_type)
 }

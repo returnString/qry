@@ -15,7 +15,6 @@ pub enum Type {
 	Library,
 	Syntax,
 	SyntaxPlaceholder,
-	MethodDispatchPlaceholder,
 	Native(Box<NativeDescriptor>),
 	List,
 }
@@ -40,7 +39,6 @@ impl Type {
 			Self::Library => "Library",
 			Self::Syntax => "Syntax",
 			Self::SyntaxPlaceholder => "SyntaxPlaceholder",
-			Self::MethodDispatchPlaceholder => "MethodDispatchPlaceholder",
 			Self::Native(d) => d.name,
 			Self::List => "List",
 		}

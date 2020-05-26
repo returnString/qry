@@ -25,7 +25,7 @@ impl Method {
 			.iter()
 			.map(|n| Parameter {
 				name: (*n).to_string(),
-				param_type: Type::MethodDispatchPlaceholder,
+				param_type: Type::Any,
 			})
 			.collect::<Vec<_>>();
 
@@ -34,7 +34,7 @@ impl Method {
 			fixed_return_type: fixed_return_type.clone(),
 			signature: Signature {
 				// FIXME: need a better placeholder for methods with varying return types
-				return_type: fixed_return_type.unwrap_or(Type::Null),
+				return_type: fixed_return_type.unwrap_or(Type::Any),
 				params,
 				trailing_type: None,
 				named_trailing_type: None,

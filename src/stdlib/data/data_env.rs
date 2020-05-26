@@ -162,7 +162,7 @@ pub fn env() -> EnvironmentPtr {
 		env.update(
 			"dimensions",
 			Builtin::new_value(
-				Signature::returning(&Type::Int).param("df", dataframe_type),
+				Signature::returning(&Type::List).param("df", dataframe_type),
 				|_, args, _| {
 					let df = args[0].as_native::<DataFrame>();
 					Ok(Value::List(vec![

@@ -15,7 +15,7 @@ fn test_functions() {
 		),
 		(
 			// TODO: syntax for function types
-			"fn getter(a: Int) -> Null { fn() -> Int { a + 1 } }
+			"fn getter(a: Int) -> Any { fn() -> Int { a + 1 } }
 			getter(30)()",
 			Value::Int(31),
 		),
