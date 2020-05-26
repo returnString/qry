@@ -205,13 +205,22 @@ pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 		Syntax::Call {
 			target,
 			positional_args,
-			named_args: _,
-		} => match eval(ctx, target)? {
-			Value::Builtin(builtin) => eval_callable(ctx, &*builtin, positional_args),
-			Value::Function(func) => eval_callable(ctx, &*func, positional_args),
-			Value::Method(method) => eval_callable(ctx, &*method.borrow(), positional_args),
-			_ => Err(EvalError::NotCallable),
-		},
+			named_args,
+		} => {
+			let named_args = named_args
+				.iter()
+				.map(|(n, s)| (n.as_ref(), s.clone()))
+				.collect::<Vec<_>>();
+
+			match eval(ctx, target)? {
+				Value::Builtin(builtin) => eval_callable(ctx, &*builtin, positional_args, &named_args),
+				Value::Function(func) => eval_callable(ctx, &*func, positional_args, &named_args),
+				Value::Method(method) => {
+					eval_callable(ctx, &*method.borrow(), positional_args, &named_args)
+				}
+				_ => Err(EvalError::NotCallable),
+			}
+		}
 		Syntax::Switch { target, cases } => {
 			let target_val = eval(ctx, target)?;
 			let mut ret = Value::Null(());

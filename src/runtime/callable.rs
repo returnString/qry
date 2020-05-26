@@ -53,10 +53,18 @@ pub trait Callable {
 		-> EvalResult;
 }
 
+fn eval_arg(ctx: &EvalContext, param_type: &Type, expr: &Syntax) -> EvalResult {
+	match param_type {
+		Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(expr.clone()))),
+		_ => Ok(eval(ctx, expr)?),
+	}
+}
+
 pub fn eval_callable(
 	ctx: &EvalContext,
 	callable: &impl Callable,
 	positional: &[Syntax],
+	named_trailing: &[(&str, Syntax)],
 ) -> EvalResult {
 	let sig = callable.signature();
 	let num_supplied = positional.len();
@@ -64,6 +72,10 @@ pub fn eval_callable(
 	if num_supplied < num_expected_min
 		|| (sig.trailing_type.is_none() && num_supplied > num_expected_min)
 	{
+		return Err(EvalError::ArgMismatch);
+	}
+
+	if !named_trailing.is_empty() && sig.named_trailing_type.is_none() {
 		return Err(EvalError::ArgMismatch);
 	}
 
@@ -77,12 +89,18 @@ pub fn eval_callable(
 				sig.trailing_type.as_ref().unwrap()
 			};
 
-			match param_type {
-				Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(s.clone()))),
-				_ => eval(ctx, s),
-			}
+			eval_arg(ctx, param_type, s)
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 
-	callable.call(ctx, &args, &[])
+	let named_args = named_trailing
+		.iter()
+		.map(|(n, s)| {
+			let named_trailing_type = sig.named_trailing_type.as_ref().unwrap();
+			let arg = eval_arg(ctx, &named_trailing_type, s)?;
+			Ok((*n, arg))
+		})
+		.collect::<Result<Vec<_>, EvalError>>()?;
+
+	callable.call(ctx, &args, &named_args)
 }

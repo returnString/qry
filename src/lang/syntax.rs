@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BinaryOperator {
 	Add,
@@ -84,7 +82,7 @@ pub enum Syntax {
 	Call {
 		target: Box<Syntax>,
 		positional_args: Vec<Syntax>,
-		named_args: HashMap<String, Syntax>,
+		named_args: Vec<(String, Syntax)>,
 	},
 	Switch {
 		target: Box<Syntax>,
