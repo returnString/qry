@@ -1,5 +1,6 @@
 use super::{
-	connect_sqlite, df_to_string, Connection, DataFrame, FilterStep, QueryPipeline, SelectStep,
+	connect_sqlite, df_to_string, Connection, DataFrame, FilterStep, MutateStep, QueryPipeline,
+	SelectStep,
 };
 use crate::runtime::{Builtin, Environment, EnvironmentPtr, Signature, Type, Value};
 use crate::stdlib::ops::RUNTIME_OPS;
@@ -115,6 +116,28 @@ pub fn env() -> EnvironmentPtr {
 		);
 
 		env.update(
+			"mutate",
+			Builtin::new_value(
+				Signature::returning(pipeline_type)
+					.param("pipeline", pipeline_type)
+					.with_named_trailing(&Type::SyntaxPlaceholder),
+				|ctx, args, named_args| {
+					let pipeline = args[0].as_native::<QueryPipeline>();
+					let new_cols = named_args
+						.iter()
+						.map(|(n, a)| (n.to_string(), a.as_syntax().clone()))
+						.collect::<Vec<_>>();
+
+					let step = MutateStep {
+						ctx: ctx.clone(),
+						new_cols,
+					};
+					Ok(Value::new_native(pipeline.add(Rc::new(step))))
+				},
+			),
+		);
+
+		env.update(
 			"num_rows",
 			Builtin::new_value(
 				Signature::returning(&Type::Int).param("df", dataframe_type),
@@ -132,6 +155,20 @@ pub fn env() -> EnvironmentPtr {
 				|_, args, _| {
 					let df = args[0].as_native::<DataFrame>();
 					Ok(Value::Int(df.num_cols()))
+				},
+			),
+		);
+
+		env.update(
+			"dimensions",
+			Builtin::new_value(
+				Signature::returning(&Type::Int).param("df", dataframe_type),
+				|_, args, _| {
+					let df = args[0].as_native::<DataFrame>();
+					Ok(Value::List(vec![
+						Value::Int(df.num_rows()),
+						Value::Int(df.num_cols()),
+					]))
 				},
 			),
 		);

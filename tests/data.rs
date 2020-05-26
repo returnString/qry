@@ -71,5 +71,29 @@ fn test_data_sqlite() {
 			&with_table_bootstrap(r#"test_table |> collect() |> num_cols()"#),
 			Value::Int(2),
 		),
+		(
+			&with_table_bootstrap(
+				r#"
+				test_table
+					|> mutate(new_col = age * 2)
+					|> filter(new_col == 52)
+					|> collect()
+					|> dimensions()
+				"#,
+			),
+			Value::List(vec![Value::Int(1), Value::Int(3)]),
+		),
+		(
+			&with_table_bootstrap(
+				r#"
+				test_table
+					|> mutate(age = age - 1)
+					|> filter(age == 26)
+					|> collect()
+					|> dimensions()
+				"#,
+			),
+			Value::List(vec![Value::Int(2), Value::Int(2)]),
+		),
 	]);
 }

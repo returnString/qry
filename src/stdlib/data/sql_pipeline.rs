@@ -154,3 +154,46 @@ impl PipelineStep for SelectStep {
 		))
 	}
 }
+
+#[derive(Clone)]
+pub struct MutateStep {
+	pub ctx: EvalContext,
+	pub new_cols: Vec<(String, Syntax)>,
+}
+
+impl PipelineStep for MutateStep {
+	fn render(&self, state: RenderState) -> SqlResult<RenderState> {
+		let new_col_exprs = self
+			.new_cols
+			.iter()
+			.map(|(n, e)| Ok((n, expr_to_sql(&self.ctx, e, &state.metadata)?)))
+			.collect::<SqlResult<Vec<_>>>()?;
+
+		let mut new_metadata = state.metadata.clone();
+		for (name, sql_expr) in &new_col_exprs {
+			new_metadata
+				.col_types
+				.insert(name.to_string(), sql_expr.sql_type.clone());
+		}
+
+		let new_names = self.new_cols.iter().map(|(n, _)| n).collect::<Vec<_>>();
+
+		let old_cols = state
+			.metadata
+			.col_types
+			.keys()
+			.filter(|k| !new_names.contains(k))
+			.cloned();
+
+		let new_cols = new_col_exprs
+			.iter()
+			.map(|(n, c)| format!("{} as {}", c.text, n));
+
+		let all_cols = old_cols.chain(new_cols).collect::<Vec<_>>();
+		let select = all_cols.join(", ");
+
+		Ok(state.wrap(new_metadata, |sub| {
+			format!("select {} from {}", select, sub)
+		}))
+	}
+}
