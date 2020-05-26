@@ -1,4 +1,4 @@
-use super::Value;
+use super::{NativeType, Type, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -45,5 +45,11 @@ impl Environment {
 		let env = Self::new(name);
 		self.copy_to(&mut env.borrow_mut());
 		env
+	}
+
+	pub fn define_native_type<T: 'static + NativeType>(&mut self) -> Type {
+		let native_type = Type::new_native::<T>();
+		self.update(T::name(), Value::Type(native_type.clone()));
+		native_type
 	}
 }
