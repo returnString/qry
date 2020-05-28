@@ -1,6 +1,5 @@
-use super::{eval_callable, eval_function, Callable, Environment, EnvironmentPtr, Type, Value};
+use super::{eval_callable, eval_function, Callable, EnvironmentPtr, EvalContext, Type, Value};
 use crate::lang::syntax::*;
-use crate::stdlib;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EvalError {
@@ -34,13 +33,11 @@ fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult {
 }
 
 fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResult {
-	stdlib::ops::UNOP_LOOKUP.with(|m| {
-		if let Some(method) = m.get(&op) {
-			method.call(ctx, &[eval(ctx, target)?], &[])
-		} else {
-			Err(EvalError::MethodNotImplemented)
-		}
-	})
+	if let Some(method) = ctx.methods.unops.get(&op) {
+		method.call(ctx, &[eval(ctx, target)?], &[])
+	} else {
+		Err(EvalError::MethodNotImplemented)
+	}
 }
 
 fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator) -> EvalResult {
@@ -84,13 +81,13 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 			}
 			_ => Err(EvalError::UnhandledSyntax),
 		},
-		_ => stdlib::ops::BINOP_LOOKUP.with(|m| {
-			if let Some(method) = m.get(&op) {
+		_ => {
+			if let Some(method) = ctx.methods.binops.get(&op) {
 				method.call(ctx, &[eval(ctx, lhs)?, eval(ctx, rhs)?], &[])
 			} else {
 				Err(EvalError::MethodNotImplemented)
 			}
-		}),
+		}
 	}
 }
 
@@ -128,45 +125,6 @@ fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResul
 	}
 
 	Ok(Value::Null(()))
-}
-
-#[derive(Default, Clone)]
-pub struct EvalContext {
-	pub env: EnvironmentPtr,
-	pub library_env: EnvironmentPtr,
-}
-
-impl EvalContext {
-	pub fn new() -> Self {
-		let global_env_ptr = Environment::new("global");
-		let library_env_ptr = Environment::new("libraries");
-
-		let add_lib = |env_ptr: EnvironmentPtr, add_to_global| {
-			let lib_val = Value::Library(env_ptr.clone());
-			let env = env_ptr.borrow();
-			library_env_ptr.borrow_mut().update(env.name(), lib_val);
-
-			if add_to_global {
-				env.copy_to(&mut global_env_ptr.borrow_mut());
-			}
-		};
-
-		add_lib(stdlib::core::env(), true);
-		add_lib(stdlib::ops::env(), false);
-		add_lib(stdlib::data::env(), false);
-
-		EvalContext {
-			env: global_env_ptr,
-			library_env: library_env_ptr,
-		}
-	}
-
-	pub fn child(&self, env_ptr: EnvironmentPtr) -> EvalContext {
-		EvalContext {
-			library_env: self.library_env.clone(),
-			env: env_ptr,
-		}
-	}
 }
 
 pub fn eval_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult {
@@ -221,7 +179,7 @@ pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 		Syntax::Switch { target, cases } => {
 			let target_val = eval(ctx, target)?;
 			let mut ret = Value::Null(());
-			let eq_method = stdlib::ops::BINOP_LOOKUP.with(|m| m[&BinaryOperator::Equal].clone());
+			let eq_method = &ctx.methods.binops[&BinaryOperator::Equal];
 			for case in cases {
 				let case_val = eval(ctx, &case.expr)?;
 				let eq_val = eq_method.call(ctx, &[target_val.clone(), case_val], &[])?;

@@ -1,7 +1,6 @@
 use super::{SqlError, SqlMetadata, SqlResult};
 use crate::lang::{BinaryOperator, Syntax};
 use crate::runtime::{eval, EvalContext, Type, Value};
-use crate::stdlib::ops::BINOP_LOOKUP;
 
 #[derive(Clone, Debug)]
 pub struct SqlExpression {
@@ -96,7 +95,7 @@ pub fn expr_to_sql(
 		Syntax::BinaryOp { lhs, op, rhs } => {
 			let lhs_val = expr_to_sql(ctx, lhs, metadata)?;
 			let rhs_val = expr_to_sql(ctx, rhs, metadata)?;
-			match BINOP_LOOKUP.with(|b| b.get(&op).cloned()) {
+			match ctx.methods.binops.get(&op) {
 				Some(method) => {
 					let resolved = method.resolve(&[lhs_val.sql_type, rhs_val.sql_type]);
 

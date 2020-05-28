@@ -3,7 +3,7 @@ use qry::runtime::{eval_multi, EvalContext, EvalError, EvalResult, Value};
 
 pub fn eval_src(src: &str) -> EvalResult {
 	let exprs = parse(src).unwrap_or_else(|err| panic!("parse failed ({}): {:?}", src, err));
-	eval_multi(&EvalContext::new(), &exprs)
+	eval_multi(&EvalContext::new_with_stdlib(), &exprs)
 }
 
 pub fn eval_expect_values(cases: &[(&str, Value)]) {

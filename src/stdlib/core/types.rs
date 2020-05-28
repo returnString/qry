@@ -1,7 +1,8 @@
-use crate::runtime::{Builtin, Environment, EnvironmentPtr, Signature, Type, Value};
-use crate::stdlib::ops::RUNTIME_OPS;
+use crate::runtime::{
+	Builtin, Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value,
+};
 
-pub fn env() -> EnvironmentPtr {
+pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 	let env = Environment::new("core");
 	{
 		let mut env = env.borrow_mut();
@@ -17,9 +18,7 @@ pub fn env() -> EnvironmentPtr {
 			env.update(t.name(), Value::Type(t.clone()));
 		}
 
-		RUNTIME_OPS.with(|o| {
-			env.update("to_string", Value::Method(o.to_string.clone()));
-		});
+		env.update("to_string", Value::Method(methods.to_string.clone()));
 
 		env.update(
 			"typeof",

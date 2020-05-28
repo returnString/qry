@@ -2,11 +2,12 @@ use super::{
 	connect_sqlite, df_to_string, Connection, DataFrame, FilterStep, MutateStep, QueryPipeline,
 	SelectStep,
 };
-use crate::runtime::{Builtin, Environment, EnvironmentPtr, Signature, Type, Value};
-use crate::stdlib::ops::RUNTIME_OPS;
+use crate::runtime::{
+	Builtin, Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value,
+};
 use std::rc::Rc;
 
-pub fn env() -> EnvironmentPtr {
+pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 	let env = Environment::new("data");
 	{
 		let mut env = env.borrow_mut();
@@ -173,34 +174,32 @@ pub fn env() -> EnvironmentPtr {
 			),
 		);
 
-		RUNTIME_OPS.with(|o| {
-			o.to_string.register(Builtin::new(
-				Signature::returning(&Type::String).param("obj", connection_type),
-				|_, args, _| {
-					Ok(Value::String(
-						format!("Connection: {}", args[0].as_native::<Connection>().driver).into_boxed_str(),
-					))
-				},
-			));
+		methods.to_string.register(Builtin::new(
+			Signature::returning(&Type::String).param("obj", connection_type),
+			|_, args, _| {
+				Ok(Value::String(
+					format!("Connection: {}", args[0].as_native::<Connection>().driver).into_boxed_str(),
+				))
+			},
+		));
 
-			o.to_string.register(Builtin::new(
-				Signature::returning(&Type::String).param("obj", dataframe_type),
-				|_, args, _| {
-					let df = args[0].as_native::<DataFrame>();
-					Ok(Value::String(df_to_string(&df).into_boxed_str()))
-				},
-			));
+		methods.to_string.register(Builtin::new(
+			Signature::returning(&Type::String).param("obj", dataframe_type),
+			|_, args, _| {
+				let df = args[0].as_native::<DataFrame>();
+				Ok(Value::String(df_to_string(&df).into_boxed_str()))
+			},
+		));
 
-			o.to_string.register(Builtin::new(
-				Signature::returning(&Type::String).param("obj", pipeline_type),
-				|_, args, _| {
-					let pipeline = args[0].as_native::<QueryPipeline>();
-					Ok(Value::String(
-						format!("QueryPipeline ({} steps)", pipeline.steps.len()).into_boxed_str(),
-					))
-				},
-			));
-		});
+		methods.to_string.register(Builtin::new(
+			Signature::returning(&Type::String).param("obj", pipeline_type),
+			|_, args, _| {
+				let pipeline = args[0].as_native::<QueryPipeline>();
+				Ok(Value::String(
+					format!("QueryPipeline ({} steps)", pipeline.steps.len()).into_boxed_str(),
+				))
+			},
+		));
 	}
 
 	env
