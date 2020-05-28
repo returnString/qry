@@ -6,8 +6,9 @@ use rustyline::Editor;
 fn print_value(ctx: &EvalContext, value: Value) {
 	print!("({})", value.runtime_type().name());
 
-	if let Ok(value_str) = ctx.methods.to_string.call(&ctx, &[value], &[]) {
-		print!(" {}", value_str.as_string());
+	match ctx.methods.to_string.call(&ctx, &[value], &[]) {
+		Ok(value_str) => print!(" {}", value_str.as_string()),
+		Err(err) => print!(" error in to_string: {:?}", err),
 	}
 
 	println!();
