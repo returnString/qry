@@ -32,6 +32,8 @@ fn test_functions() {
 				Value::String("test string".into()),
 			]),
 		),
+		(r#"list(1, 2.0, "test string")[0]"#, Value::Int(1)),
+		(r#"list(1, 2.0, "test string")[1]"#, Value::Float(2.)),
 	]);
 }
 

@@ -191,5 +191,17 @@ pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			}
 			Ok(ret)
 		}
+		Syntax::Index { target, keys } => {
+			let mut args = vec![eval(ctx, target)?];
+			args.extend(
+				keys
+					.iter()
+					.map(|k| eval(ctx, k))
+					.collect::<Result<Vec<_>, _>>()?,
+			);
+
+			let ret = ctx.methods.index.call(ctx, &args, &[])?;
+			Ok(ret)
+		}
 	}
 }

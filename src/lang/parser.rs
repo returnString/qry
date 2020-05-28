@@ -102,6 +102,8 @@ peg::parser! {
 				}
 			}
 			--
+			target:(@) "[" keys:expr() ** (_ "," _) "]" { Syntax::Index { target: Box::new(target), keys } }
+			--
 			lhs:(@) "::" rhs:@ { binop(lhs, rhs, BinaryOperator::Access) }
 			--
 			"use" __ from:ident() ** "::" import:(import_named() / import_wildcard() / import_lib()) { Syntax::Use { from, import } }

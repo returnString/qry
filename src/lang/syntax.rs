@@ -88,4 +88,8 @@ pub enum Syntax {
 		target: Box<Syntax>,
 		cases: Vec<SwitchCase>,
 	},
+	Index {
+		target: Box<Syntax>,
+		keys: Vec<Syntax>,
+	},
 }

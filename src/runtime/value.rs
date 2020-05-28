@@ -77,6 +77,13 @@ impl Value {
 		}
 	}
 
+	pub fn as_int(&self) -> i64 {
+		match self {
+			Self::Int(i) => *i,
+			_ => panic!("value is not an int"),
+		}
+	}
+
 	pub fn as_method(&self) -> Rc<Method> {
 		match self {
 			Self::Method(m) => m.clone(),

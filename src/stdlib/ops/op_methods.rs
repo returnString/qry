@@ -10,7 +10,9 @@ pub fn create() -> (RuntimeMethods, EnvironmentPtr) {
 	let binops = init_binops();
 	let unops = init_unops();
 	let to_string = Method::new("to_string", &["val"], Some(Type::String), None);
+	let index = Method::new("index", &["container", "key"], None, None);
 	init_to_string(&to_string);
+	init_index(&index);
 
 	{
 		let mut env = env.borrow_mut();
@@ -27,6 +29,7 @@ pub fn create() -> (RuntimeMethods, EnvironmentPtr) {
 	(
 		RuntimeMethods {
 			to_string,
+			index,
 			binops,
 			unops,
 		},
@@ -169,6 +172,19 @@ fn init_to_string(to_string: &Method) {
 			Ok(Value::String(type_val.name().into()))
 		},
 	));
+}
+
+fn init_index(index: &Method) {
+	index.register(Builtin::new(
+		Signature::returning(&Type::Any)
+			.param("list", &Type::List)
+			.param("index", &Type::Int),
+		|_, args, _| {
+			let list = args[0].as_list();
+			let index = args[1].as_int() as usize;
+			Ok(list[index].clone())
+		},
+	))
 }
 
 #[allow(clippy::float_cmp)] // this is invoked by the Float == Float method

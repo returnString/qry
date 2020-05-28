@@ -7,6 +7,7 @@ use std::rc::Rc;
 #[derive(Debug, Clone)]
 pub struct RuntimeMethods {
 	pub to_string: Rc<Method>,
+	pub index: Rc<Method>,
 	pub binops: HashMap<BinaryOperator, Rc<Method>>,
 	pub unops: HashMap<UnaryOperator, Rc<Method>>,
 }
