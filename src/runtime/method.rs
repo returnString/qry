@@ -3,16 +3,14 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Method {
 	name: String,
 	signature: Signature,
-	impls: HashMap<Vec<Type>, Rc<dyn Callable>>,
+	impls: RefCell<HashMap<Vec<Type>, Rc<dyn Callable>>>,
 	fixed_return_type: Option<Type>,
 	default_impl: Option<Rc<dyn Callable>>,
 }
-
-pub type MethodPtr = Rc<RefCell<Method>>;
 
 impl Method {
 	pub fn new(
@@ -20,7 +18,7 @@ impl Method {
 		dispatch_param_names: &[&str],
 		fixed_return_type: Option<Type>,
 		default_impl: Option<Rc<dyn Callable>>,
-	) -> MethodPtr {
+	) -> Rc<Self> {
 		let params = dispatch_param_names
 			.iter()
 			.map(|n| Parameter {
@@ -29,7 +27,7 @@ impl Method {
 			})
 			.collect::<Vec<_>>();
 
-		Rc::new(RefCell::new(Self {
+		Rc::new(Self {
 			name: name.into(),
 			fixed_return_type: fixed_return_type.clone(),
 			signature: Signature {
@@ -41,22 +39,27 @@ impl Method {
 			},
 			impls: Default::default(),
 			default_impl,
-		}))
+		})
 	}
 
 	pub fn name(&self) -> &str {
 		&self.name
 	}
 
-	pub fn supported_signatures(&self) -> impl Iterator<Item = &Signature> {
-		self.impls.iter().map(|(_, v)| v.signature())
+	pub fn supported_signatures(&self) -> Vec<Signature> {
+		self
+			.impls
+			.borrow()
+			.iter()
+			.map(|(_, v)| v.signature().clone())
+			.collect()
 	}
 
 	fn get_sig_key(&self, types: &[Type]) -> Vec<Type> {
 		types[..self.signature.params.len()].to_owned()
 	}
 
-	pub fn register(&mut self, callable: Rc<dyn Callable>) {
+	pub fn register(&self, callable: Rc<dyn Callable>) {
 		if let Some(return_type) = &self.fixed_return_type {
 			assert_eq!(*return_type, callable.signature().return_type)
 		}
@@ -69,20 +72,12 @@ impl Method {
 				.map(|p| p.param_type.clone())
 				.collect::<Vec<_>>(),
 		);
-		self.impls.insert(key, callable);
+		self.impls.borrow_mut().insert(key, callable);
 	}
 
 	pub fn resolve(&self, types: &[Type]) -> Option<Rc<dyn Callable>> {
 		let key = self.get_sig_key(types);
-		self.impls.get(&key).cloned()
-	}
-}
-
-impl std::fmt::Debug for Method {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-		f.debug_struct("Method")
-			.field("signature", &self.signature)
-			.finish()
+		self.impls.borrow().get(&key).cloned()
 	}
 }
 

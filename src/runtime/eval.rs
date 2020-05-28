@@ -36,7 +36,7 @@ fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult {
 fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResult {
 	stdlib::ops::UNOP_LOOKUP.with(|m| {
 		if let Some(method) = m.get(&op) {
-			method.borrow().call(ctx, &[eval(ctx, target)?], &[])
+			method.call(ctx, &[eval(ctx, target)?], &[])
 		} else {
 			Err(EvalError::MethodNotImplemented)
 		}
@@ -86,9 +86,7 @@ fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator)
 		},
 		_ => stdlib::ops::BINOP_LOOKUP.with(|m| {
 			if let Some(method) = m.get(&op) {
-				method
-					.borrow()
-					.call(ctx, &[eval(ctx, lhs)?, eval(ctx, rhs)?], &[])
+				method.call(ctx, &[eval(ctx, lhs)?, eval(ctx, rhs)?], &[])
 			} else {
 				Err(EvalError::MethodNotImplemented)
 			}
@@ -216,9 +214,7 @@ pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			match eval(ctx, target)? {
 				Value::Builtin(builtin) => eval_callable(ctx, &*builtin, positional_args, &named_args),
 				Value::Function(func) => eval_callable(ctx, &*func, positional_args, &named_args),
-				Value::Method(method) => {
-					eval_callable(ctx, &*method.borrow(), positional_args, &named_args)
-				}
+				Value::Method(method) => eval_callable(ctx, &*method, positional_args, &named_args),
 				_ => Err(EvalError::NotCallable),
 			}
 		}
@@ -228,9 +224,7 @@ pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
 			let eq_method = stdlib::ops::BINOP_LOOKUP.with(|m| m[&BinaryOperator::Equal].clone());
 			for case in cases {
 				let case_val = eval(ctx, &case.expr)?;
-				let eq_val = eq_method
-					.borrow()
-					.call(ctx, &[target_val.clone(), case_val], &[])?;
+				let eq_val = eq_method.call(ctx, &[target_val.clone(), case_val], &[])?;
 
 				if eq_val.as_bool() {
 					ret = eval(ctx, &case.returns)?;

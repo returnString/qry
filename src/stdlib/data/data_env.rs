@@ -174,8 +174,7 @@ pub fn env() -> EnvironmentPtr {
 		);
 
 		RUNTIME_OPS.with(|o| {
-			let mut to_string = o.to_string.borrow_mut();
-			to_string.register(Builtin::new(
+			o.to_string.register(Builtin::new(
 				Signature::returning(&Type::String).param("obj", connection_type),
 				|_, args, _| {
 					Ok(Value::String(
@@ -184,7 +183,7 @@ pub fn env() -> EnvironmentPtr {
 				},
 			));
 
-			to_string.register(Builtin::new(
+			o.to_string.register(Builtin::new(
 				Signature::returning(&Type::String).param("obj", dataframe_type),
 				|_, args, _| {
 					let df = args[0].as_native::<DataFrame>();
@@ -192,7 +191,7 @@ pub fn env() -> EnvironmentPtr {
 				},
 			));
 
-			to_string.register(Builtin::new(
+			o.to_string.register(Builtin::new(
 				Signature::returning(&Type::String).param("obj", pipeline_type),
 				|_, args, _| {
 					let pipeline = args[0].as_native::<QueryPipeline>();

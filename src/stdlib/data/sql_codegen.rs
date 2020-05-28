@@ -98,9 +98,7 @@ pub fn expr_to_sql(
 			let rhs_val = expr_to_sql(ctx, rhs, metadata)?;
 			match BINOP_LOOKUP.with(|b| b.get(&op).cloned()) {
 				Some(method) => {
-					let resolved = method
-						.borrow()
-						.resolve(&[lhs_val.sql_type, rhs_val.sql_type]);
+					let resolved = method.resolve(&[lhs_val.sql_type, rhs_val.sql_type]);
 
 					match resolved {
 						Some(callable) => Ok(SqlExpression {

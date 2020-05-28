@@ -1,8 +1,7 @@
 use crate::lang::{BinaryOperator, UnaryOperator};
-use crate::runtime::{
-	Builtin, Environment, EnvironmentPtr, Method, MethodPtr, Signature, Type, Value,
-};
+use crate::runtime::{Builtin, Environment, EnvironmentPtr, Method, Signature, Type, Value};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 pub fn env() -> EnvironmentPtr {
 	let env = Environment::new("ops");
@@ -12,13 +11,13 @@ pub fn env() -> EnvironmentPtr {
 
 		BINOP_LOOKUP.with(|m| {
 			for v in m.values() {
-				env.update(v.borrow().name(), Value::Method(v.clone()));
+				env.update(v.name(), Value::Method(v.clone()));
 			}
 		});
 
 		UNOP_LOOKUP.with(|m| {
 			for v in m.values() {
-				env.update(v.borrow().name(), Value::Method(v.clone()));
+				env.update(v.name(), Value::Method(v.clone()));
 			}
 		});
 	}
@@ -44,7 +43,7 @@ macro_rules! binop {
 
 macro_rules! equality_ops {
 	($map: expr, $lhs_type: ident, $rhs_type: ident, $native_type: ty) => {
-		let assoc = |op, func| $map.get(&op).unwrap().borrow_mut().register(func);
+		let assoc = |op, func| $map.get(&op).unwrap().register(func);
 		assoc(
 			BinaryOperator::Equal,
 			binop!($lhs_type, $rhs_type, Bool, |a, b| (a as $native_type
@@ -60,7 +59,7 @@ macro_rules! equality_ops {
 
 macro_rules! numeric_binops {
 	($map: expr, $lhs_type: ident, $rhs_type: ident, $return_type: ident, $native_type: ty) => {
-		let assoc = |op, func| $map.get(&op).unwrap().borrow_mut().register(func);
+		let assoc = |op, func| $map.get(&op).unwrap().register(func);
 		assoc(
 			BinaryOperator::Add,
 			binop!($lhs_type, $rhs_type, $return_type, |a, b| (a
@@ -123,7 +122,7 @@ macro_rules! unop {
 }
 
 pub struct RuntimeOps {
-	pub to_string: MethodPtr,
+	pub to_string: Rc<Method>,
 }
 
 thread_local! {
@@ -131,16 +130,14 @@ thread_local! {
 		let to_string = Method::new("to_string", &["val"], Some(Type::String), None);
 
 		{
-			let mut to_string = to_string.borrow_mut();
 			to_string.register(unop!(Null, String, |_| "null".into()));
 			to_string.register(unop!(String, String, |a| a));
 			to_string.register(unop!(Int, String, |a: i64| a.to_string().into_boxed_str()));
 			to_string.register(unop!(Float, String, |a: f64| format!("{:?}", a).into_boxed_str()));
 			to_string.register(unop!(Bool, String, |a: bool| a.to_string().into_boxed_str()));
 			to_string.register(Builtin::new(Signature::returning(&Type::String).param("obj", &Type::Method), |_, args, _| {
-				let method_ptr = args[0].as_method();
-				let method = method_ptr.borrow();
-				let signatures = method.supported_signatures().map(|s| {
+				let method = args[0].as_method();
+				let signatures = method.supported_signatures().iter().map(|s| {
 					let param_string = s.params.iter().map(|p| format!("{}: {:?}", p.name, p.param_type)).collect::<Vec<_>>().join(", ");
 					format!("({}) -> {:?}", param_string, s.return_type)
 				}).collect::<Vec<_>>().join("\n");
@@ -159,7 +156,7 @@ thread_local! {
 	};
 
 	#[allow(clippy::float_cmp)] // this is invoked by the Float == Float method
-	pub static BINOP_LOOKUP: HashMap<BinaryOperator, MethodPtr> = {
+	pub static BINOP_LOOKUP: HashMap<BinaryOperator, Rc<Method>> = {
 		let mut m = HashMap::new();
 		let mut new_binop = |name, op| {
 			let method = Method::new(name, &["a", "b"], None, None);
@@ -186,16 +183,9 @@ thread_local! {
 			numeric_binops!(m, Int, Float, Float, f64);
 			numeric_binops!(m, Float, Int, Float, f64);
 
-			let mut and = and.borrow_mut();
-			let mut or = or.borrow_mut();
-
 			equality_ops!(m, Bool, Bool, bool);
 			and.register(binop!(Bool, Bool, Bool, |a, b| a && b));
 			or.register(binop!(Bool, Bool, Bool, |a, b| a || b));
-
-			let mut add = add.borrow_mut();
-			let mut equal = equal.borrow_mut();
-			let mut not_equal = not_equal.borrow_mut();
 
 			add.register(binop!(String, String, String, |a, b| format!("{}{}", a, b).into_boxed_str()));
 			equal.register(binop!(String, String, Bool, |a, b| a == b));
@@ -205,7 +195,7 @@ thread_local! {
 		m
 	};
 
-	pub static UNOP_LOOKUP: HashMap<UnaryOperator, MethodPtr> = {
+	pub static UNOP_LOOKUP: HashMap<UnaryOperator, Rc<Method>> = {
 		let mut m = HashMap::new();
 		let mut new_unop = |name, op| {
 			let method = Method::new(name, &["a"], None, None);
@@ -216,10 +206,8 @@ thread_local! {
 		let negate = new_unop("negate", UnaryOperator::Negate);
 		let minus = new_unop("minus", UnaryOperator::Minus);
 
-		let mut negate = negate.borrow_mut();
 		negate.register(unop!(Bool, Bool, |a: bool| !a));
 
-		let mut minus = minus.borrow_mut();
 		minus.register(unop!(Int, Int, |a: i64| -a));
 		minus.register(unop!(Float, Float, |a: f64| -a));
 

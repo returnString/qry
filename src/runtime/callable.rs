@@ -53,6 +53,14 @@ pub trait Callable {
 		-> EvalResult;
 }
 
+impl std::fmt::Debug for dyn Callable {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+		f.debug_struct("Callable")
+			.field("signature", &self.signature())
+			.finish()
+	}
+}
+
 fn typecheck_val(val: Value, expected_type: &Type) -> EvalResult {
 	if expected_type == &Type::Any || expected_type == &val.runtime_type() {
 		Ok(val)

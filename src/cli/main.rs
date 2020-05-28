@@ -9,7 +9,7 @@ fn print_value(ctx: &EvalContext, value: Value) {
 
 	print!("({})", value.runtime_type().name());
 
-	if let Ok(value_str) = to_string.borrow().call(&ctx, &[value], &[]) {
+	if let Ok(value_str) = to_string.call(&ctx, &[value], &[]) {
 		print!(" {}", value_str.as_string());
 	}
 

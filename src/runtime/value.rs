@@ -1,4 +1,4 @@
-use super::{Builtin, EnvironmentPtr, Function, MethodPtr, NativeDescriptor, NativeType, Type};
+use super::{Builtin, EnvironmentPtr, Function, Method, NativeDescriptor, NativeType, Type};
 use crate::lang::Syntax;
 use std::any::Any;
 use std::rc::Rc;
@@ -19,7 +19,7 @@ pub enum Value {
 	Type(Type),
 	Function(Rc<Function>),
 	Builtin(Rc<Builtin>),
-	Method(MethodPtr),
+	Method(Rc<Method>),
 	Library(EnvironmentPtr),
 	Syntax(Box<Syntax>),
 	Native(NativeWrapper),
@@ -77,7 +77,7 @@ impl Value {
 		}
 	}
 
-	pub fn as_method(&self) -> MethodPtr {
+	pub fn as_method(&self) -> Rc<Method> {
 		match self {
 			Self::Method(m) => m.clone(),
 			_ => panic!("value is not a method"),
