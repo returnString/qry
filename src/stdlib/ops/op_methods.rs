@@ -152,10 +152,11 @@ fn init_to_string(to_string: &Method) {
 					let param_string = s
 						.params
 						.iter()
-						.map(|p| format!("{}: {:?}", p.name, p.param_type))
+						.map(|p| format!("{}: {}", p.name, p.param_type.name()))
 						.collect::<Vec<_>>()
 						.join(", ");
-					format!("({}) -> {:?}", param_string, s.return_type)
+
+					format!("({}) -> {}", param_string, s.return_type.name())
 				})
 				.collect::<Vec<_>>()
 				.join("\n");
