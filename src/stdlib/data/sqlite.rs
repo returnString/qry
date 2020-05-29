@@ -171,7 +171,7 @@ fn sqlite_connect_impl(connstring: &str) -> SqlResult<SqliteConnection> {
 	Ok(SqliteConnection::open(connstring)?)
 }
 
-pub fn connect_sqlite(_: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult {
+pub fn connect_sqlite(_: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult<Value> {
 	let connstring = args[0].as_string();
 	let sqlite_conn = sqlite_connect_impl(connstring)?;
 

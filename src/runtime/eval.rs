@@ -15,14 +15,14 @@ pub enum EvalError {
 	TypeMismatch { expected: Type, actual: Type },
 }
 
-pub type EvalResult = Result<Value, EvalError>;
+pub type EvalResult<T> = Result<T, EvalError>;
 
-pub fn assign_value(ctx: &EvalContext, name: &str, value: Value) -> EvalResult {
+pub fn assign_value(ctx: &EvalContext, name: &str, value: Value) -> EvalResult<Value> {
 	ctx.env.borrow_mut().update(name, value.clone());
 	Ok(value)
 }
 
-fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult {
+fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult<Value> {
 	match dest {
 		Syntax::Ident(name) => {
 			let value = eval(ctx, src)?;
@@ -32,7 +32,7 @@ fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult {
 	}
 }
 
-fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResult {
+fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResult<Value> {
 	if let Some(method) = ctx.methods.unops.get(&op) {
 		method.call(ctx, &[eval(ctx, target)?], &[])
 	} else {
@@ -40,7 +40,12 @@ fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResul
 	}
 }
 
-fn eval_binop(ctx: &EvalContext, lhs: &Syntax, rhs: &Syntax, op: BinaryOperator) -> EvalResult {
+fn eval_binop(
+	ctx: &EvalContext,
+	lhs: &Syntax,
+	rhs: &Syntax,
+	op: BinaryOperator,
+) -> EvalResult<Value> {
 	match op {
 		BinaryOperator::LAssign => eval_assign(ctx, lhs, rhs),
 		BinaryOperator::RAssign => eval_assign(ctx, rhs, lhs),
@@ -108,7 +113,7 @@ fn resolve_lib(starting_env: EnvironmentPtr, from: &[String]) -> Result<Environm
 	Ok(current_env)
 }
 
-fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResult {
+fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResult<Value> {
 	let lib_env = resolve_lib(ctx.library_env.clone(), from)?;
 
 	match import {
@@ -127,7 +132,7 @@ fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResul
 	Ok(Value::Null(()))
 }
 
-pub fn eval_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult {
+pub fn eval_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult<Value> {
 	let mut ret = Value::Null(());
 	for expr in exprs {
 		ret = eval(ctx, expr)?;
@@ -135,7 +140,7 @@ pub fn eval_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult {
 	Ok(ret)
 }
 
-pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult {
+pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult<Value> {
 	match expr {
 		Syntax::Int(val) => Ok(Value::Int(*val)),
 		Syntax::Float(val) => Ok(Value::Float(*val)),

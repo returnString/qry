@@ -18,7 +18,7 @@ pub fn eval_function(
 	params: &[ParameterDef],
 	return_type: &Syntax,
 	body: &[Syntax],
-) -> EvalResult {
+) -> EvalResult<Value> {
 	let param_types = params
 		.iter()
 		.map(|p| match eval(ctx, &p.param_type)? {
@@ -62,7 +62,7 @@ impl Callable for Function {
 		&self.signature
 	}
 
-	fn call(&self, ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult {
+	fn call(&self, ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult<Value> {
 		let func_body_env = self.env.borrow().child("funceval");
 
 		for (value, param) in args.iter().zip(&self.signature.params) {

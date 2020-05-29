@@ -2,7 +2,7 @@ use super::{Callable, EvalContext, EvalResult, Signature, Value};
 use std::fmt::Debug;
 use std::rc::Rc;
 
-type BuiltinFunc = fn(&EvalContext, &[Value], &[(&str, Value)]) -> EvalResult;
+type BuiltinFunc = fn(&EvalContext, &[Value], &[(&str, Value)]) -> EvalResult<Value>;
 
 #[derive(Clone)]
 pub struct Builtin {
@@ -38,7 +38,7 @@ impl Callable for Builtin {
 		ctx: &EvalContext,
 		args: &[Value],
 		named_trailing: &[(&str, Value)],
-	) -> EvalResult {
+	) -> EvalResult<Value> {
 		(self.func)(ctx, args, named_trailing)
 	}
 }

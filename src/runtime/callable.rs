@@ -49,8 +49,12 @@ impl Signature {
 
 pub trait Callable {
 	fn signature(&self) -> &Signature;
-	fn call(&self, ctx: &EvalContext, args: &[Value], named_trailing: &[(&str, Value)])
-		-> EvalResult;
+	fn call(
+		&self,
+		ctx: &EvalContext,
+		args: &[Value],
+		named_trailing: &[(&str, Value)],
+	) -> EvalResult<Value>;
 }
 
 impl std::fmt::Debug for dyn Callable {
@@ -61,7 +65,7 @@ impl std::fmt::Debug for dyn Callable {
 	}
 }
 
-fn typecheck_val(val: Value, expected_type: &Type) -> EvalResult {
+fn typecheck_val(val: Value, expected_type: &Type) -> EvalResult<Value> {
 	if expected_type == &Type::Any || expected_type == &val.runtime_type() {
 		Ok(val)
 	} else {
@@ -72,7 +76,7 @@ fn typecheck_val(val: Value, expected_type: &Type) -> EvalResult {
 	}
 }
 
-fn eval_arg(ctx: &EvalContext, param_type: &Type, expr: &Syntax) -> EvalResult {
+fn eval_arg(ctx: &EvalContext, param_type: &Type, expr: &Syntax) -> EvalResult<Value> {
 	match param_type {
 		Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(expr.clone()))),
 		_ => typecheck_val(eval(ctx, expr)?, param_type),
@@ -84,7 +88,7 @@ pub fn eval_callable(
 	callable: &impl Callable,
 	positional: &[Syntax],
 	named_trailing: &[(&str, Syntax)],
-) -> EvalResult {
+) -> EvalResult<Value> {
 	let sig = callable.signature();
 	let num_supplied = positional.len();
 	let num_expected_min = sig.params.len();
