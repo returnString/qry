@@ -1,5 +1,5 @@
 use super::{expr_to_sql, Connection, SqlMetadata, SqlResult};
-use crate::lang::Syntax;
+use crate::lang::SyntaxNode;
 use crate::runtime::{EvalContext, NativeType};
 use arrow::record_batch::RecordBatch;
 use std::collections::HashMap;
@@ -107,7 +107,7 @@ impl PipelineStep for FromStep {
 #[derive(Clone)]
 pub struct FilterStep {
 	pub ctx: EvalContext,
-	pub predicate: Syntax,
+	pub predicate: SyntaxNode,
 }
 
 impl PipelineStep for FilterStep {
@@ -124,7 +124,7 @@ impl PipelineStep for FilterStep {
 #[derive(Clone)]
 pub struct SelectStep {
 	pub ctx: EvalContext,
-	pub cols: Vec<Syntax>,
+	pub cols: Vec<SyntaxNode>,
 }
 
 impl PipelineStep for SelectStep {
@@ -158,7 +158,7 @@ impl PipelineStep for SelectStep {
 #[derive(Clone)]
 pub struct MutateStep {
 	pub ctx: EvalContext,
-	pub new_cols: Vec<(String, Syntax)>,
+	pub new_cols: Vec<(String, SyntaxNode)>,
 }
 
 impl PipelineStep for MutateStep {

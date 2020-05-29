@@ -1,13 +1,13 @@
 use crate::lang::syntax::*;
 
-fn unop(target: Syntax, op: UnaryOperator) -> Syntax {
+fn unop(target: SyntaxNode, op: UnaryOperator) -> Syntax {
 	Syntax::UnaryOp {
 		op,
 		target: Box::new(target),
 	}
 }
 
-fn binop(lhs: Syntax, rhs: Syntax, op: BinaryOperator) -> Syntax {
+fn binop(lhs: SyntaxNode, rhs: SyntaxNode, op: BinaryOperator) -> Syntax {
 	Syntax::BinaryOp {
 		op,
 		lhs: Box::new(lhs),
@@ -44,10 +44,10 @@ peg::parser! {
 		rule fn_anon_prefix() -> Option<String>
 			= "fn" { None }
 
-		rule named_arg() -> (Option<String>, Syntax)
+		rule named_arg() -> (Option<String>, SyntaxNode)
 			= name:ident() _ "=" _ expr:expr() { (Some(name), expr) }
 
-		rule positional_arg() -> (Option<String>, Syntax)
+		rule positional_arg() -> (Option<String>, SyntaxNode)
 			= expr:expr() { (None, expr) }
 
 		// FIXME: add char escapes
@@ -57,7 +57,9 @@ peg::parser! {
 		rule switch_case() -> SwitchCase
 			= expr:expr() _ "=>" _ returns:expr() { SwitchCase { expr, returns } }
 
-		rule expr() -> Syntax = precedence!{
+		rule expr() -> SyntaxNode = precedence!{
+			start_pos:position!() syntax:@ end_pos:position!() { SyntaxNode { start_pos, end_pos, syntax } }
+			--
 			lhs:@ _ "<-" _ rhs:(@) { binop(lhs, rhs, BinaryOperator::LAssign) }
 			--
 			lhs:(@) _ "->" _ rhs:@ { binop(lhs, rhs, BinaryOperator::RAssign) }
@@ -118,15 +120,15 @@ peg::parser! {
 			b:$("true" / "false") { Syntax::Bool(b == "true") }
 			"null" { Syntax::Null }
 			ident:ident() { Syntax::Ident(ident) }
-			"(" _ e:expr() _ ")" { e }
+			"(" _ e:expr() _ ")" { e.syntax }
 			"{{" _ e:expr() _ "}}" { Syntax::Interpolate(Box::new(e)) }
 		}
 
-		pub rule program() -> Vec<Syntax>
+		pub rule program() -> Vec<SyntaxNode>
 			= _ exprs:expr() ** _ _ { exprs }
 	}
 }
 
-pub fn parse(src: &str) -> Result<Vec<Syntax>, peg::error::ParseError<peg::str::LineCol>> {
+pub fn parse(src: &str) -> Result<Vec<SyntaxNode>, peg::error::ParseError<peg::str::LineCol>> {
 	parser::program(src)
 }

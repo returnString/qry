@@ -1,5 +1,5 @@
 use super::{Builtin, EnvironmentPtr, Function, Method, NativeDescriptor, NativeType, Type};
-use crate::lang::Syntax;
+use crate::lang::SyntaxNode;
 use std::any::Any;
 use std::rc::Rc;
 
@@ -21,7 +21,7 @@ pub enum Value {
 	Builtin(Rc<Builtin>),
 	Method(Rc<Method>),
 	Library(EnvironmentPtr),
-	Syntax(Box<Syntax>),
+	Syntax(Box<SyntaxNode>),
 	Native(NativeWrapper),
 	List(Vec<Value>),
 }
@@ -63,7 +63,7 @@ impl Value {
 		}
 	}
 
-	pub fn as_syntax(&self) -> &Syntax {
+	pub fn as_syntax(&self) -> &SyntaxNode {
 		match self {
 			Self::Syntax(expr) => expr,
 			_ => panic!("value is not an expression"),

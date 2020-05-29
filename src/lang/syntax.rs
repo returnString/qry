@@ -42,13 +42,13 @@ pub enum Import {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParameterDef {
 	pub name: String,
-	pub param_type: Syntax,
+	pub param_type: SyntaxNode,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SwitchCase {
-	pub expr: Syntax,
-	pub returns: Syntax,
+	pub expr: SyntaxNode,
+	pub returns: SyntaxNode,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,37 +59,44 @@ pub enum Syntax {
 	Bool(bool),
 	String(String),
 	Ident(String),
-	Interpolate(Box<Syntax>),
+	Interpolate(Box<SyntaxNode>),
 	Use {
 		from: Vec<String>,
 		import: Import,
 	},
 	BinaryOp {
 		op: BinaryOperator,
-		lhs: Box<Syntax>,
-		rhs: Box<Syntax>,
+		lhs: Box<SyntaxNode>,
+		rhs: Box<SyntaxNode>,
 	},
 	UnaryOp {
 		op: UnaryOperator,
-		target: Box<Syntax>,
+		target: Box<SyntaxNode>,
 	},
 	Function {
 		name: Option<String>,
 		params: Vec<ParameterDef>,
-		return_type: Box<Syntax>,
-		body: Vec<Syntax>,
+		return_type: Box<SyntaxNode>,
+		body: Vec<SyntaxNode>,
 	},
 	Call {
-		target: Box<Syntax>,
-		positional_args: Vec<Syntax>,
-		named_args: Vec<(String, Syntax)>,
+		target: Box<SyntaxNode>,
+		positional_args: Vec<SyntaxNode>,
+		named_args: Vec<(String, SyntaxNode)>,
 	},
 	Switch {
-		target: Box<Syntax>,
+		target: Box<SyntaxNode>,
 		cases: Vec<SwitchCase>,
 	},
 	Index {
-		target: Box<Syntax>,
-		keys: Vec<Syntax>,
+		target: Box<SyntaxNode>,
+		keys: Vec<SyntaxNode>,
 	},
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SyntaxNode {
+	pub syntax: Syntax,
+	pub start_pos: usize,
+	pub end_pos: usize,
 }

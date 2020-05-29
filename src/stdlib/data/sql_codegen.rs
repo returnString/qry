@@ -1,5 +1,5 @@
 use super::{SqlError, SqlMetadata, SqlResult};
-use crate::lang::{BinaryOperator, Syntax};
+use crate::lang::{BinaryOperator, Syntax, SyntaxNode};
 use crate::runtime::{eval, EvalContext, Type, Value};
 
 #[derive(Clone, Debug)]
@@ -77,10 +77,10 @@ fn interpret_value(val: Value) -> SqlExpression {
 
 pub fn expr_to_sql(
 	ctx: &EvalContext,
-	expr: &Syntax,
+	expr: &SyntaxNode,
 	metadata: &SqlMetadata,
 ) -> SqlResult<SqlExpression> {
-	match expr {
+	match &expr.syntax {
 		Syntax::Interpolate(contained_expr) => Ok(interpret_value(eval(ctx, contained_expr)?)),
 		Syntax::Null => Ok(null_literal()),
 		Syntax::String(s) => Ok(string_literal(&s)),

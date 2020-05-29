@@ -1,5 +1,5 @@
 use super::{eval, EvalContext, EvalError, EvalResult, Type, Value};
-use crate::lang::Syntax;
+use crate::lang::SyntaxNode;
 
 #[derive(Debug, Clone)]
 pub struct Parameter {
@@ -76,7 +76,7 @@ fn typecheck_val(val: Value, expected_type: &Type) -> EvalResult<Value> {
 	}
 }
 
-fn eval_arg(ctx: &EvalContext, param_type: &Type, expr: &Syntax) -> EvalResult<Value> {
+fn eval_arg(ctx: &EvalContext, param_type: &Type, expr: &SyntaxNode) -> EvalResult<Value> {
 	match param_type {
 		Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(expr.clone()))),
 		_ => typecheck_val(eval(ctx, expr)?, param_type),
@@ -86,8 +86,8 @@ fn eval_arg(ctx: &EvalContext, param_type: &Type, expr: &Syntax) -> EvalResult<V
 pub fn eval_callable(
 	ctx: &EvalContext,
 	callable: &impl Callable,
-	positional: &[Syntax],
-	named_trailing: &[(&str, Syntax)],
+	positional: &[SyntaxNode],
+	named_trailing: &[(&str, SyntaxNode)],
 ) -> EvalResult<Value> {
 	let sig = callable.signature();
 	let num_supplied = positional.len();

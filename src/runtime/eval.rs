@@ -22,8 +22,8 @@ pub fn assign_value(ctx: &EvalContext, name: &str, value: Value) -> EvalResult<V
 	Ok(value)
 }
 
-fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult<Value> {
-	match dest {
+fn eval_assign(ctx: &EvalContext, dest: &SyntaxNode, src: &SyntaxNode) -> EvalResult<Value> {
+	match &dest.syntax {
 		Syntax::Ident(name) => {
 			let value = eval(ctx, src)?;
 			assign_value(ctx, name, value)
@@ -32,7 +32,7 @@ fn eval_assign(ctx: &EvalContext, dest: &Syntax, src: &Syntax) -> EvalResult<Val
 	}
 }
 
-fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResult<Value> {
+fn eval_unop(ctx: &EvalContext, target: &SyntaxNode, op: UnaryOperator) -> EvalResult<Value> {
 	if let Some(method) = ctx.methods.unops.get(&op) {
 		method.call(ctx, &[eval(ctx, target)?], &[])
 	} else {
@@ -42,15 +42,15 @@ fn eval_unop(ctx: &EvalContext, target: &Syntax, op: UnaryOperator) -> EvalResul
 
 fn eval_binop(
 	ctx: &EvalContext,
-	lhs: &Syntax,
-	rhs: &Syntax,
+	lhs: &SyntaxNode,
+	rhs: &SyntaxNode,
 	op: BinaryOperator,
 ) -> EvalResult<Value> {
 	match op {
 		BinaryOperator::LAssign => eval_assign(ctx, lhs, rhs),
 		BinaryOperator::RAssign => eval_assign(ctx, rhs, lhs),
 		BinaryOperator::Access => {
-			let rhs_ident = if let Syntax::Ident(name) = rhs {
+			let rhs_ident = if let Syntax::Ident(name) = &rhs.syntax {
 				name
 			} else {
 				return Err(EvalError::InvalidTypeForImport);
@@ -67,7 +67,7 @@ fn eval_binop(
 			}
 		}
 		// TODO: pipes can be expressed as a syntax rewrite pass before eval
-		BinaryOperator::Pipe => match rhs {
+		BinaryOperator::Pipe => match &rhs.syntax {
 			Syntax::Call {
 				target,
 				positional_args,
@@ -77,10 +77,13 @@ fn eval_binop(
 				new_args.insert(0, lhs.clone());
 				eval(
 					ctx,
-					&Syntax::Call {
-						target: target.clone(),
-						positional_args: new_args,
-						named_args: named_args.clone(),
+					&SyntaxNode {
+						syntax: Syntax::Call {
+							target: target.clone(),
+							positional_args: new_args,
+							named_args: named_args.clone(),
+						},
+						..rhs.clone()
 					},
 				)
 			}
@@ -132,7 +135,7 @@ fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResul
 	Ok(Value::Null(()))
 }
 
-pub fn eval_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult<Value> {
+pub fn eval_multi(ctx: &EvalContext, exprs: &[SyntaxNode]) -> EvalResult<Value> {
 	let mut ret = Value::Null(());
 	for expr in exprs {
 		ret = eval(ctx, expr)?;
@@ -140,8 +143,8 @@ pub fn eval_multi(ctx: &EvalContext, exprs: &[Syntax]) -> EvalResult<Value> {
 	Ok(ret)
 }
 
-pub fn eval(ctx: &EvalContext, expr: &Syntax) -> EvalResult<Value> {
-	match expr {
+pub fn eval(ctx: &EvalContext, node: &SyntaxNode) -> EvalResult<Value> {
+	match &node.syntax {
 		Syntax::Int(val) => Ok(Value::Int(*val)),
 		Syntax::Float(val) => Ok(Value::Float(*val)),
 		Syntax::String(val) => Ok(Value::String(val.clone().into_boxed_str())),

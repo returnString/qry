@@ -1,4 +1,3 @@
-use qry::lang::parse;
 use qry::runtime::{EvalError, Type, Value};
 
 pub mod helpers;
@@ -18,10 +17,6 @@ fn test_functions() {
 			"fn getter(a: Int) -> Any { fn() -> Int { a + 1 } }
 			getter(30)()",
 			Value::Int(31),
-		),
-		(
-			"parse(x + 1)",
-			Value::Syntax(Box::new(parse("x + 1").unwrap()[0].clone())),
 		),
 		("list()", Value::List(vec![])),
 		(

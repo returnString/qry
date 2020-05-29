@@ -2,12 +2,12 @@ use super::{
 	assign_value, eval, eval_multi, Callable, EnvironmentPtr, EvalContext, EvalError, EvalResult,
 	Parameter, Signature, Value,
 };
-use crate::lang::{ParameterDef, Syntax};
+use crate::lang::{ParameterDef, SyntaxNode};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct Function {
-	pub body: Vec<Syntax>,
+	pub body: Vec<SyntaxNode>,
 	pub signature: Signature,
 	pub env: EnvironmentPtr,
 }
@@ -16,8 +16,8 @@ pub fn eval_function(
 	ctx: &EvalContext,
 	name: &Option<String>,
 	params: &[ParameterDef],
-	return_type: &Syntax,
-	body: &[Syntax],
+	return_type: &SyntaxNode,
+	body: &[SyntaxNode],
 ) -> EvalResult<Value> {
 	let param_types = params
 		.iter()
