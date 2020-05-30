@@ -15,7 +15,7 @@ pub struct Function {
 pub fn eval_function(
 	ctx: &EvalContext,
 	name: &Option<String>,
-	params: &[ParameterDef],
+	params: &[ParameterDef<SyntaxNode>],
 	return_type: &SyntaxNode,
 	body: &[SyntaxNode],
 ) -> EvalResult<Value> {
