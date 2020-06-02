@@ -18,21 +18,23 @@ fn location_for_stacktrace(location: &SourceLocation) -> String {
 
 impl std::fmt::Display for Exception {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+		writeln!(f, "exception stacktrace:")?;
+
+		for frame in &self.stack {
+			writeln!(
+				f,
+				"  in {} ({})",
+				frame.name,
+				location_for_stacktrace(&frame.location)
+			)?;
+		}
+
 		writeln!(
 			f,
 			"{} ({})",
 			&self.message,
 			location_for_stacktrace(&self.location)
 		)?;
-
-		for frame in &self.stack {
-			writeln!(
-				f,
-				"\tat {} ({})",
-				frame.name,
-				location_for_stacktrace(&frame.location)
-			)?;
-		}
 
 		Ok(())
 	}
