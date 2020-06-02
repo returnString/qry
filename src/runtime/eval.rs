@@ -1,4 +1,6 @@
-use super::{eval_callable, eval_function, Callable, EnvironmentPtr, EvalContext, Type, Value};
+use super::{
+	eval_callable, eval_function_decl, Callable, EnvironmentPtr, EvalContext, Type, Value,
+};
 use crate::lang::syntax::*;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -158,7 +160,7 @@ pub fn eval(ctx: &EvalContext, node: &SyntaxNode) -> EvalResult<Value> {
 			params,
 			return_type,
 			body,
-		} => eval_function(ctx, name, params, return_type, body),
+		} => eval_function_decl(ctx, &node.location, name, params, return_type, body),
 		Syntax::Use { from, import } => eval_import(ctx, from, import),
 		Syntax::Ident(name) => {
 			if let Some(val) = ctx.env.borrow().get(name) {

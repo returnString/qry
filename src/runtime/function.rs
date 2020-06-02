@@ -2,7 +2,7 @@ use super::{
 	assign_value, eval, eval_multi, Callable, EnvironmentPtr, EvalContext, EvalError, EvalResult,
 	Parameter, Signature, Value,
 };
-use crate::lang::{ParameterDef, SyntaxNode};
+use crate::lang::{ParameterDef, SourceLocation, SyntaxNode};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -10,10 +10,13 @@ pub struct Function {
 	pub body: Vec<SyntaxNode>,
 	pub signature: Signature,
 	pub env: EnvironmentPtr,
+	pub name: String,
+	pub location: SourceLocation,
 }
 
-pub fn eval_function(
+pub fn eval_function_decl(
 	ctx: &EvalContext,
+	location: &SourceLocation,
 	name: &Option<String>,
 	params: &[ParameterDef<SyntaxNode>],
 	return_type: &SyntaxNode,
@@ -48,6 +51,8 @@ pub fn eval_function(
 			},
 		},
 		env: ctx.env.clone(),
+		name: name.clone().unwrap_or_else(|| "anon".into()),
+		location: location.clone(),
 	}));
 
 	if let Some(name) = name {
@@ -60,6 +65,14 @@ pub fn eval_function(
 impl Callable for Function {
 	fn signature(&self) -> &Signature {
 		&self.signature
+	}
+
+	fn source_location(&self) -> &SourceLocation {
+		&self.location
+	}
+
+	fn name(&self) -> &str {
+		&self.name
 	}
 
 	fn call(&self, ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult<Value> {

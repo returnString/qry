@@ -1,5 +1,5 @@
 use super::{eval, EvalContext, EvalError, EvalResult, Type, Value};
-use crate::lang::SyntaxNode;
+use crate::lang::{SourceLocation, SyntaxNode};
 
 #[derive(Debug, Clone)]
 pub struct Parameter {
@@ -49,6 +49,8 @@ impl Signature {
 
 pub trait Callable {
 	fn signature(&self) -> &Signature;
+	fn source_location(&self) -> &SourceLocation;
+	fn name(&self) -> &str;
 	fn call(
 		&self,
 		ctx: &EvalContext,
@@ -124,6 +126,8 @@ pub fn eval_callable(
 			Ok((*n, arg))
 		})
 		.collect::<Result<Vec<_>, EvalError>>()?;
+
+	let _ = ctx.with_stack_frame(callable.name(), callable.source_location());
 
 	let ret = callable.call(ctx, &args, &named_args)?;
 	typecheck_val(ret, &sig.return_type)

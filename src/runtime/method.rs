@@ -1,4 +1,5 @@
 use super::{Callable, EvalContext, EvalError, EvalResult, Parameter, Signature, Type, Value};
+use crate::lang::SourceLocation;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -84,6 +85,14 @@ impl Method {
 impl Callable for Method {
 	fn signature(&self) -> &Signature {
 		&self.signature
+	}
+
+	fn source_location(&self) -> &SourceLocation {
+		&SourceLocation::Native
+	}
+
+	fn name(&self) -> &str {
+		&self.name
 	}
 
 	fn call(

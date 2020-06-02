@@ -1,4 +1,5 @@
 use super::{Callable, EvalContext, EvalResult, Signature, Value};
+use crate::lang::SourceLocation;
 use std::fmt::Debug;
 use std::rc::Rc;
 
@@ -31,6 +32,14 @@ impl Debug for Builtin {
 impl Callable for Builtin {
 	fn signature(&self) -> &Signature {
 		&self.signature
+	}
+
+	fn source_location(&self) -> &SourceLocation {
+		&SourceLocation::Native
+	}
+
+	fn name(&self) -> &str {
+		"builtin" // TODO: ensure builtins track their names
 	}
 
 	fn call(

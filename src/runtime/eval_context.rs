@@ -1,8 +1,15 @@
 use super::{Environment, EnvironmentPtr, Method, Value};
-use crate::lang::{BinaryOperator, UnaryOperator};
+use crate::lang::{BinaryOperator, SourceLocation, UnaryOperator};
 use crate::stdlib;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+
+#[derive(Debug, Clone)]
+pub struct StackFrame {
+	pub name: String,
+	pub location: SourceLocation,
+}
 
 #[derive(Debug, Clone)]
 pub struct RuntimeMethods {
@@ -12,11 +19,33 @@ pub struct RuntimeMethods {
 	pub unops: HashMap<UnaryOperator, Rc<Method>>,
 }
 
+pub struct EvalStackFrameScope<'a> {
+	ctx: &'a EvalContext,
+}
+
+impl<'a> EvalStackFrameScope<'a> {
+	pub fn new(ctx: &'a EvalContext, name: &str, location: &SourceLocation) -> Self {
+		ctx.callstack.borrow_mut().push(StackFrame {
+			name: name.to_owned(),
+			location: location.clone(),
+		});
+
+		Self { ctx }
+	}
+}
+
+impl Drop for EvalStackFrameScope<'_> {
+	fn drop(&mut self) {
+		self.ctx.callstack.borrow_mut().pop();
+	}
+}
+
 #[derive(Debug, Clone)]
 pub struct EvalContext {
 	pub env: EnvironmentPtr,
 	pub library_env: EnvironmentPtr,
 	pub methods: Rc<RuntimeMethods>,
+	pub callstack: Rc<RefCell<Vec<StackFrame>>>,
 }
 
 impl EvalContext {
@@ -43,6 +72,7 @@ impl EvalContext {
 			env: global_env_ptr,
 			library_env: library_env_ptr,
 			methods: Rc::new(ops_methods),
+			callstack: Rc::default(),
 		}
 	}
 
@@ -51,5 +81,10 @@ impl EvalContext {
 			env: env_ptr,
 			..self.clone()
 		}
+	}
+
+	#[must_use]
+	pub fn with_stack_frame(&self, name: &str, location: &SourceLocation) -> EvalStackFrameScope {
+		EvalStackFrameScope::new(self, name, location)
 	}
 }
