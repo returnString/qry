@@ -1,5 +1,5 @@
 use crate::runtime::{
-	Builtin, Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value,
+	Builtin, Callable, Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value,
 };
 
 pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
@@ -42,7 +42,19 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 				Signature::returning(&Type::List).with_trailing(&Type::Any),
 				|_, args, _| Ok(Value::List(args.to_vec())),
 			),
-		)
+		);
+
+		env.update(
+			"print",
+			Builtin::new_value(
+				Signature::returning(&Type::Null).param("obj", &Type::Any),
+				|ctx, args, _| {
+					let str_val = ctx.methods.to_string.call(ctx, &[args[0].clone()], &[])?;
+					println!("{}", str_val.as_string());
+					Ok(Value::Null(()))
+				},
+			),
+		);
 	}
 	env
 }
