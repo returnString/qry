@@ -3,21 +3,22 @@ use crate::lang::SourceLocation;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-type BuiltinFunc = fn(&EvalContext, &[Value], &[(&str, Value)]) -> EvalResult<Value>;
+pub type BuiltinFunc = fn(&EvalContext, &[Value], &[(&str, Value)]) -> EvalResult<Value>;
 
 #[derive(Clone)]
 pub struct Builtin {
+	name: String,
 	signature: Signature,
 	func: BuiltinFunc,
 }
 
 impl Builtin {
-	pub fn new(signature: Signature, func: BuiltinFunc) -> Rc<Builtin> {
-		Rc::new(Builtin { signature, func })
-	}
-
-	pub fn new_value(signature: Signature, func: BuiltinFunc) -> Value {
-		Value::Builtin(Self::new(signature, func))
+	pub fn new(name: &str, signature: Signature, func: BuiltinFunc) -> Rc<Builtin> {
+		Rc::new(Builtin {
+			name: name.into(),
+			signature,
+			func,
+		})
 	}
 }
 
@@ -39,7 +40,7 @@ impl Callable for Builtin {
 	}
 
 	fn name(&self) -> &str {
-		"builtin" // TODO: ensure builtins track their names
+		&self.name
 	}
 
 	fn call(

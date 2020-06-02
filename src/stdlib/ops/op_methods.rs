@@ -1,7 +1,5 @@
 use crate::lang::{BinaryOperator, UnaryOperator};
-use crate::runtime::{
-	Builtin, Environment, EnvironmentPtr, Method, RuntimeMethods, Signature, Type, Value,
-};
+use crate::runtime::{Environment, EnvironmentPtr, Method, RuntimeMethods, Signature, Type, Value};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -38,8 +36,8 @@ pub fn create() -> (RuntimeMethods, EnvironmentPtr) {
 }
 
 macro_rules! binop {
-	($lhs_type: ident, $rhs_type: ident, $return_type: ident, $builder: expr) => {
-		Builtin::new(
+	($method: expr, $lhs_type: ident, $rhs_type: ident, $return_type: ident, $builder: expr) => {
+		$method.register_builtin(
 			Signature::returning(&Type::$return_type)
 				.param("a", &Type::$lhs_type)
 				.param("b", &Type::$rhs_type),
@@ -55,66 +53,81 @@ macro_rules! binop {
 
 macro_rules! equality_ops {
 	($map: expr, $lhs_type: ident, $rhs_type: ident, $native_type: ty) => {
-		let assoc = |op, func| $map.get(&op).unwrap().register(func);
-		assoc(
-			BinaryOperator::Equal,
-			binop!($lhs_type, $rhs_type, Bool, |a, b| (a as $native_type
-				== (b as $native_type))),
+		binop!(
+			$map[&BinaryOperator::Equal],
+			$lhs_type,
+			$rhs_type,
+			Bool,
+			|a, b| (a as $native_type == (b as $native_type))
 		);
-		assoc(
-			BinaryOperator::NotEqual,
-			binop!($lhs_type, $rhs_type, Bool, |a, b| (a as $native_type
-				!= (b as $native_type))),
+
+		binop!(
+			$map[&BinaryOperator::NotEqual],
+			$lhs_type,
+			$rhs_type,
+			Bool,
+			|a, b| (a as $native_type != (b as $native_type))
 		);
 	};
 }
 
 macro_rules! numeric_binops {
 	($map: expr, $lhs_type: ident, $rhs_type: ident, $return_type: ident, $native_type: ty) => {
-		let assoc = |op, func| $map.get(&op).unwrap().register(func);
-		assoc(
-			BinaryOperator::Add,
-			binop!($lhs_type, $rhs_type, $return_type, |a, b| (a
-				as $native_type)
-				+ (b as $native_type)),
+		binop!(
+			$map[&BinaryOperator::Add],
+			$lhs_type,
+			$rhs_type,
+			$return_type,
+			|a, b| (a as $native_type) + (b as $native_type)
 		);
-		assoc(
-			BinaryOperator::Sub,
-			binop!($lhs_type, $rhs_type, $return_type, |a, b| (a
-				as $native_type)
-				- (b as $native_type)),
+		binop!(
+			$map[&BinaryOperator::Sub],
+			$lhs_type,
+			$rhs_type,
+			$return_type,
+			|a, b| (a as $native_type) - (b as $native_type)
 		);
-		assoc(
-			BinaryOperator::Mul,
-			binop!($lhs_type, $rhs_type, $return_type, |a, b| (a
-				as $native_type)
-				* (b as $native_type)),
+		binop!(
+			$map[&BinaryOperator::Mul],
+			$lhs_type,
+			$rhs_type,
+			$return_type,
+			|a, b| (a as $native_type) * (b as $native_type)
 		);
-		assoc(
-			BinaryOperator::Div,
-			binop!($lhs_type, $rhs_type, $return_type, |a, b| (a
-				as $native_type)
-				/ (b as $native_type)),
+		binop!(
+			$map[&BinaryOperator::Div],
+			$lhs_type,
+			$rhs_type,
+			$return_type,
+			|a, b| (a as $native_type) / (b as $native_type)
 		);
-		assoc(
-			BinaryOperator::Lt,
-			binop!($lhs_type, $rhs_type, Bool, |a, b| (a as $native_type)
-				< (b as $native_type)),
+		binop!(
+			$map[&BinaryOperator::Lt],
+			$lhs_type,
+			$rhs_type,
+			Bool,
+			|a, b| (a as $native_type) < (b as $native_type)
 		);
-		assoc(
-			BinaryOperator::Lte,
-			binop!($lhs_type, $rhs_type, Bool, |a, b| (a as $native_type)
-				<= (b as $native_type)),
+		binop!(
+			$map[&BinaryOperator::Lte],
+			$lhs_type,
+			$rhs_type,
+			Bool,
+			|a, b| (a as $native_type) <= (b as $native_type)
 		);
-		assoc(
-			BinaryOperator::Gt,
-			binop!($lhs_type, $rhs_type, Bool, |a, b| (a as $native_type)
-				> (b as $native_type)),
+		binop!(
+			$map[&BinaryOperator::Gt],
+			$lhs_type,
+			$rhs_type,
+			Bool,
+			|a, b| (a as $native_type) > (b as $native_type)
 		);
-		assoc(
-			BinaryOperator::Gte,
-			binop!($lhs_type, $rhs_type, Bool, |a, b| (a as $native_type)
-				>= (b as $native_type)),
+		binop!(
+			$map[&BinaryOperator::Gte],
+			$lhs_type,
+			$rhs_type,
+			Bool,
+			|a, b| (a as $native_type) >= (b as $native_type)
 		);
 
 		equality_ops!($map, $lhs_type, $rhs_type, $native_type);
@@ -122,8 +135,8 @@ macro_rules! numeric_binops {
 }
 
 macro_rules! unop {
-	($target_type: ident, $return_type: ident, $builder: expr) => {
-		Builtin::new(
+	($method: expr, $target_type: ident, $return_type: ident, $builder: expr) => {
+		$method.register_builtin(
 			Signature::returning(&Type::$return_type).param("a", &Type::$target_type),
 			|_, args, _| match &args[0] {
 				Value::$target_type(a) => Ok(Value::$return_type($builder(a.clone()))),
@@ -134,14 +147,17 @@ macro_rules! unop {
 }
 
 fn init_to_string(to_string: &Method) {
-	to_string.register(unop!(Null, String, |_| "null".into()));
-	to_string.register(unop!(String, String, |a| a));
-	to_string.register(unop!(Int, String, |a: i64| a.to_string().into_boxed_str()));
-	to_string.register(unop!(Float, String, |a: f64| format!("{:?}", a).into_boxed_str()));
-	to_string.register(unop!(Bool, String, |a: bool| a
+	unop!(to_string, Null, String, |_| "null".into());
+	unop!(to_string, String, String, |a| a);
+	unop!(to_string, Int, String, |a: i64| a
 		.to_string()
-		.into_boxed_str()));
-	to_string.register(Builtin::new(
+		.into_boxed_str());
+	unop!(to_string, Float, String, |a: f64| format!("{:?}", a)
+		.into_boxed_str());
+	unop!(to_string, Bool, String, |a: bool| a
+		.to_string()
+		.into_boxed_str());
+	to_string.register_builtin(
 		Signature::returning(&Type::String).param("obj", &Type::Method),
 		|_, args, _| {
 			let method = args[0].as_method();
@@ -165,18 +181,18 @@ fn init_to_string(to_string: &Method) {
 				format!("method '{}' with impls:\n{}", method.name(), signatures).into_boxed_str(),
 			))
 		},
-	));
-	to_string.register(Builtin::new(
+	);
+	to_string.register_builtin(
 		Signature::returning(&Type::String).param("obj", &Type::Type),
 		|_, args, _| {
 			let type_val = args[0].as_type();
 			Ok(Value::String(type_val.name().into()))
 		},
-	));
+	);
 }
 
 fn init_index(index: &Method) {
-	index.register(Builtin::new(
+	index.register_builtin(
 		Signature::returning(&Type::Any)
 			.param("list", &Type::List)
 			.param("index", &Type::Int),
@@ -185,7 +201,7 @@ fn init_index(index: &Method) {
 			let index = args[1].as_int() as usize;
 			Ok(list[index].clone())
 		},
-	))
+	);
 }
 
 #[allow(clippy::float_cmp)] // this is invoked by the Float == Float method
@@ -216,13 +232,13 @@ fn init_binops() -> HashMap<BinaryOperator, Rc<Method>> {
 	numeric_binops!(m, Float, Int, Float, f64);
 
 	equality_ops!(m, Bool, Bool, bool);
-	and.register(binop!(Bool, Bool, Bool, |a, b| a && b));
-	or.register(binop!(Bool, Bool, Bool, |a, b| a || b));
+	binop!(and, Bool, Bool, Bool, |a, b| a && b);
+	binop!(or, Bool, Bool, Bool, |a, b| a || b);
 
-	add.register(binop!(String, String, String, |a, b| format!("{}{}", a, b)
-		.into_boxed_str()));
-	equal.register(binop!(String, String, Bool, |a, b| a == b));
-	not_equal.register(binop!(String, String, Bool, |a, b| a != b));
+	binop!(add, String, String, String, |a, b| format!("{}{}", a, b)
+		.into_boxed_str());
+	binop!(equal, String, String, Bool, |a, b| a == b);
+	binop!(not_equal, String, String, Bool, |a, b| a != b);
 
 	m
 }
@@ -238,10 +254,10 @@ fn init_unops() -> HashMap<UnaryOperator, Rc<Method>> {
 	let negate = new_unop("negate", UnaryOperator::Negate);
 	let minus = new_unop("minus", UnaryOperator::Minus);
 
-	negate.register(unop!(Bool, Bool, |a: bool| !a));
+	unop!(negate, Bool, Bool, |a: bool| !a);
 
-	minus.register(unop!(Int, Int, |a: i64| -a));
-	minus.register(unop!(Float, Float, |a: f64| -a));
+	unop!(minus, Int, Int, |a: i64| -a);
+	unop!(minus, Float, Float, |a: f64| -a);
 
 	m
 }

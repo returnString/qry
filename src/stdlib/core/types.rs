@@ -1,5 +1,5 @@
 use crate::runtime::{
-	Builtin, Callable, Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value,
+	Callable, Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value,
 };
 
 pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
@@ -20,40 +20,32 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 
 		env.update("to_string", Value::Method(methods.to_string.clone()));
 
-		env.update(
+		env.define_builtin(
 			"typeof",
-			Builtin::new_value(
-				Signature::returning(&Type::Type).param("obj", &Type::Any),
-				|_, args, _| Ok(Value::Type(args[0].runtime_type())),
-			),
+			Signature::returning(&Type::Type).param("obj", &Type::Any),
+			|_, args, _| Ok(Value::Type(args[0].runtime_type())),
 		);
 
-		env.update(
+		env.define_builtin(
 			"parse",
-			Builtin::new_value(
-				Signature::returning(&Type::Syntax).param("code", &Type::SyntaxPlaceholder),
-				|_, args, _| Ok(args[0].clone()),
-			),
+			Signature::returning(&Type::Syntax).param("code", &Type::SyntaxPlaceholder),
+			|_, args, _| Ok(args[0].clone()),
 		);
 
-		env.update(
+		env.define_builtin(
 			"list",
-			Builtin::new_value(
-				Signature::returning(&Type::List).with_trailing(&Type::Any),
-				|_, args, _| Ok(Value::List(args.to_vec())),
-			),
+			Signature::returning(&Type::List).with_trailing(&Type::Any),
+			|_, args, _| Ok(Value::List(args.to_vec())),
 		);
 
-		env.update(
+		env.define_builtin(
 			"print",
-			Builtin::new_value(
-				Signature::returning(&Type::Null).param("obj", &Type::Any),
-				|ctx, args, _| {
-					let str_val = ctx.methods.to_string.call(ctx, &[args[0].clone()], &[])?;
-					println!("{}", str_val.as_string());
-					Ok(Value::Null(()))
-				},
-			),
+			Signature::returning(&Type::Null).param("obj", &Type::Any),
+			|ctx, args, _| {
+				let str_val = ctx.methods.to_string.call(ctx, &[args[0].clone()], &[])?;
+				println!("{}", str_val.as_string());
+				Ok(Value::Null(()))
+			},
 		);
 	}
 	env

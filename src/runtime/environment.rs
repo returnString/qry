@@ -1,4 +1,4 @@
-use super::{NativeType, Type, Value};
+use super::{Builtin, BuiltinFunc, NativeType, Signature, Type, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -51,5 +51,10 @@ impl Environment {
 		let native_type = Type::new_native::<T>();
 		self.update(T::name(), Value::Type(native_type.clone()));
 		native_type
+	}
+
+	pub fn define_builtin(&mut self, name: &str, signature: Signature, func: BuiltinFunc) {
+		let builtin = Value::Builtin(Builtin::new(name, signature, func));
+		self.update(name, builtin);
 	}
 }

@@ -1,4 +1,6 @@
-use super::{Callable, EvalContext, EvalResult, Parameter, Signature, Type, Value};
+use super::{
+	Builtin, BuiltinFunc, Callable, EvalContext, EvalResult, Parameter, Signature, Type, Value,
+};
 use crate::lang::SourceLocation;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -74,6 +76,10 @@ impl Method {
 				.collect::<Vec<_>>(),
 		);
 		self.impls.borrow_mut().insert(key, callable);
+	}
+
+	pub fn register_builtin(&self, signature: Signature, func: BuiltinFunc) {
+		self.register(Builtin::new(&self.name, signature, func));
 	}
 
 	pub fn resolve(&self, types: &[Type]) -> Option<Rc<dyn Callable>> {
