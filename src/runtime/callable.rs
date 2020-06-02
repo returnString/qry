@@ -1,4 +1,4 @@
-use super::{eval, EvalContext, EvalError, EvalResult, Type, Value};
+use super::{eval, EvalContext, EvalResult, Type, Value};
 use crate::lang::{SourceLocation, SyntaxNode};
 
 #[derive(Debug, Clone)]
@@ -67,21 +67,25 @@ impl std::fmt::Debug for dyn Callable {
 	}
 }
 
-fn typecheck_val(val: Value, expected_type: &Type) -> EvalResult<Value> {
+fn typecheck_val(ctx: &EvalContext, val: Value, expected_type: &Type) -> EvalResult<Value> {
 	if expected_type == &Type::Any || expected_type == &val.runtime_type() {
 		Ok(val)
 	} else {
-		Err(EvalError::TypeMismatch {
-			expected: expected_type.clone(),
-			actual: val.runtime_type(),
-		})
+		Err(ctx.exception(
+			&SourceLocation::Native,
+			format!(
+				"typecheck failed: expected {}, got {}",
+				expected_type.name(),
+				val.runtime_type().name()
+			),
+		))
 	}
 }
 
 fn eval_arg(ctx: &EvalContext, param_type: &Type, expr: &SyntaxNode) -> EvalResult<Value> {
 	match param_type {
 		Type::SyntaxPlaceholder => Ok(Value::Syntax(Box::new(expr.clone()))),
-		_ => typecheck_val(eval(ctx, expr)?, param_type),
+		_ => typecheck_val(ctx, eval(ctx, expr)?, param_type),
 	}
 }
 
@@ -97,11 +101,11 @@ pub fn eval_callable(
 	if num_supplied < num_expected_min
 		|| (sig.trailing_type.is_none() && num_supplied > num_expected_min)
 	{
-		return Err(EvalError::ArgMismatch);
+		return Err(ctx.exception(&SourceLocation::Native, "not enough args"));
 	}
 
 	if !named_trailing.is_empty() && sig.named_trailing_type.is_none() {
-		return Err(EvalError::ArgMismatch);
+		return Err(ctx.exception(&SourceLocation::Native, "too many args"));
 	}
 
 	let args = positional
@@ -125,10 +129,10 @@ pub fn eval_callable(
 			let arg = eval_arg(ctx, &named_trailing_type, s)?;
 			Ok((*n, arg))
 		})
-		.collect::<Result<Vec<_>, EvalError>>()?;
+		.collect::<EvalResult<Vec<_>>>()?;
 
-	let _ = ctx.with_stack_frame(callable.name(), callable.source_location());
+	let _stackframe = ctx.with_stack_frame(callable.name(), callable.source_location());
 
 	let ret = callable.call(ctx, &args, &named_args)?;
-	typecheck_val(ret, &sig.return_type)
+	typecheck_val(ctx, ret, &sig.return_type)
 }

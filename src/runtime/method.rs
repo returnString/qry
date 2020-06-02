@@ -1,4 +1,4 @@
-use super::{Callable, EvalContext, EvalError, EvalResult, Parameter, Signature, Type, Value};
+use super::{Callable, EvalContext, EvalResult, Parameter, Signature, Type, Value};
 use crate::lang::SourceLocation;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -108,7 +108,7 @@ impl Callable for Method {
 		} else if let Some(callable) = &self.default_impl {
 			callable.call(ctx, args, named_trailing)
 		} else {
-			Err(EvalError::MethodNotImplemented)
+			Err(ctx.exception(&SourceLocation::Native, "failed to resolve method"))
 		}
 	}
 }

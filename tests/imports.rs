@@ -1,4 +1,4 @@
-use qry::runtime::{EvalError, Type, Value};
+use qry::runtime::{Type, Value};
 
 pub mod helpers;
 
@@ -12,11 +12,5 @@ fn test_imports() {
 
 #[test]
 fn test_import_failures() {
-	helpers::eval_expect_errors(&[
-		("use core::{blah}", EvalError::NotFound("blah".into())),
-		(
-			"use nonexistentmodule",
-			EvalError::NotFound("nonexistentmodule".into()),
-		),
-	]);
+	helpers::eval_expect_errors(&[("use core::{blah}",), ("use nonexistentmodule",)]);
 }

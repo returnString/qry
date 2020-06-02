@@ -1,23 +1,9 @@
 use super::{
-	eval_callable, eval_function_decl, Callable, EnvironmentPtr, EvalContext, Type, Value,
+	eval_callable, eval_function_decl, Callable, EnvironmentPtr, EvalContext, Exception, Value,
 };
 use crate::lang::syntax::*;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum EvalError {
-	UnhandledSyntax,
-	IllegalAssignment,
-	InvalidTypeForImport,
-	NotType,
-	NotCallable,
-	NotFound(String),
-	ArgMismatch,
-	MethodNotImplemented,
-	UserCodeError(String),
-	TypeMismatch { expected: Type, actual: Type },
-}
-
-pub type EvalResult<T> = Result<T, EvalError>;
+pub type EvalResult<T> = Result<T, Exception>;
 
 pub fn assign_value(ctx: &EvalContext, name: &str, value: Value) -> EvalResult<Value> {
 	ctx.env.borrow_mut().update(name, value.clone());
@@ -30,16 +16,13 @@ fn eval_assign(ctx: &EvalContext, dest: &SyntaxNode, src: &SyntaxNode) -> EvalRe
 			let value = eval(ctx, src)?;
 			assign_value(ctx, name, value)
 		}
-		_ => Err(EvalError::IllegalAssignment),
+		_ => Err(ctx.exception(&dest.location, "assignment requires an identifier")),
 	}
 }
 
 fn eval_unop(ctx: &EvalContext, target: &SyntaxNode, op: UnaryOperator) -> EvalResult<Value> {
-	if let Some(method) = ctx.methods.unops.get(&op) {
-		method.call(ctx, &[eval(ctx, target)?], &[])
-	} else {
-		Err(EvalError::MethodNotImplemented)
-	}
+	let method = &ctx.methods.unops[&op];
+	method.call(ctx, &[eval(ctx, target)?], &[])
 }
 
 fn eval_binop(
@@ -55,17 +38,17 @@ fn eval_binop(
 			let rhs_ident = if let Syntax::Ident(name) = &rhs.syntax {
 				name
 			} else {
-				return Err(EvalError::InvalidTypeForImport);
+				return Err(ctx.exception(&rhs.location, "access operator requires an identifier"));
 			};
 
 			if let Value::Library(lib_env) = eval(ctx, lhs)? {
 				if let Some(val) = lib_env.borrow().get(rhs_ident) {
 					Ok(val)
 				} else {
-					Err(EvalError::NotFound(rhs_ident.clone()))
+					Err(ctx.exception(&rhs.location, format!("not found: {}", rhs_ident)))
 				}
 			} else {
-				Err(EvalError::InvalidTypeForImport)
+				Err(ctx.exception(&lhs.location, "access operator requires a library"))
 			}
 		}
 		// TODO: pipes can be expressed as a syntax rewrite pass before eval
@@ -89,37 +72,46 @@ fn eval_binop(
 					},
 				)
 			}
-			_ => Err(EvalError::UnhandledSyntax),
+			_ => Err(ctx.exception(
+				&rhs.location,
+				"right-hand side of a pipe expression must be a call",
+			)),
 		},
 		_ => {
-			if let Some(method) = ctx.methods.binops.get(&op) {
-				method.call(ctx, &[eval(ctx, lhs)?, eval(ctx, rhs)?], &[])
-			} else {
-				Err(EvalError::MethodNotImplemented)
-			}
+			let method = &ctx.methods.binops[&op];
+			method.call(ctx, &[eval(ctx, lhs)?, eval(ctx, rhs)?], &[])
 		}
 	}
 }
 
-fn resolve_lib(starting_env: EnvironmentPtr, from: &[String]) -> Result<EnvironmentPtr, EvalError> {
-	let mut current_env = starting_env;
+fn resolve_lib(
+	ctx: &EvalContext,
+	parent_node: &SyntaxNode,
+	from: &[String],
+) -> Result<EnvironmentPtr, Exception> {
+	let mut current_env = ctx.library_env.clone();
 	for name in from {
 		let val = { current_env.borrow().get(name) };
 		if let Some(lib_value) = val {
 			if let Value::Library(lib_env) = lib_value {
 				current_env = lib_env;
 			} else {
-				return Err(EvalError::InvalidTypeForImport);
+				return Err(ctx.exception(&parent_node.location, "expected a library"));
 			}
 		} else {
-			return Err(EvalError::NotFound(name.clone()));
+			return Err(ctx.exception(&parent_node.location, "expected a library"));
 		}
 	}
 	Ok(current_env)
 }
 
-fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResult<Value> {
-	let lib_env = resolve_lib(ctx.library_env.clone(), from)?;
+fn eval_import(
+	ctx: &EvalContext,
+	parent_node: &SyntaxNode,
+	from: &[String],
+	import: &Import,
+) -> EvalResult<Value> {
+	let lib_env = resolve_lib(ctx, parent_node, from)?;
 
 	match import {
 		Import::Named(names) => {
@@ -127,7 +119,7 @@ fn eval_import(ctx: &EvalContext, from: &[String], import: &Import) -> EvalResul
 				if let Some(val) = lib_env.borrow().get(name) {
 					ctx.env.borrow_mut().update(name, val);
 				} else {
-					return Err(EvalError::NotFound(name.clone()));
+					return Err(ctx.exception(&parent_node.location, format!("not found: {}", name)));
 				}
 			}
 		}
@@ -154,19 +146,22 @@ pub fn eval(ctx: &EvalContext, node: &SyntaxNode) -> EvalResult<Value> {
 		Syntax::Null => Ok(Value::Null(())),
 		Syntax::BinaryOp { lhs, rhs, op } => eval_binop(ctx, lhs, rhs, *op),
 		Syntax::UnaryOp { target, op } => eval_unop(ctx, target, *op),
-		Syntax::Interpolate(_) => Err(EvalError::UnhandledSyntax),
+		Syntax::Interpolate(_) => Err(ctx.exception(
+			&node.location,
+			"interpolation not supported in regular code",
+		)),
 		Syntax::Function {
 			name,
 			params,
 			return_type,
 			body,
 		} => eval_function_decl(ctx, &node.location, name, params, return_type, body),
-		Syntax::Use { from, import } => eval_import(ctx, from, import),
+		Syntax::Use { from, import } => eval_import(ctx, node, from, import),
 		Syntax::Ident(name) => {
 			if let Some(val) = ctx.env.borrow().get(name) {
 				Ok(val)
 			} else {
-				Err(EvalError::NotFound(name.clone()))
+				Err(ctx.exception(&node.location, format!("not found: {}", name)))
 			}
 		}
 		Syntax::Call {
@@ -183,7 +178,7 @@ pub fn eval(ctx: &EvalContext, node: &SyntaxNode) -> EvalResult<Value> {
 				Value::Builtin(builtin) => eval_callable(ctx, &*builtin, positional_args, &named_args),
 				Value::Function(func) => eval_callable(ctx, &*func, positional_args, &named_args),
 				Value::Method(method) => eval_callable(ctx, &*method, positional_args, &named_args),
-				_ => Err(EvalError::NotCallable),
+				_ => Err(ctx.exception(&node.location, "target is not callable")),
 			}
 		}
 		Syntax::Switch { target, cases } => {

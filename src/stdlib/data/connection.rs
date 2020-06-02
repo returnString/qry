@@ -1,29 +1,6 @@
-use crate::runtime::{EvalError, NativeType, Type};
-use arrow::error::ArrowError;
+use crate::runtime::{EvalContext, EvalResult, NativeType, Type};
 use arrow::record_batch::RecordBatch;
 use std::collections::HashMap;
-
-pub type SqlResult<T> = Result<T, SqlError>;
-
-#[derive(Debug)]
-pub enum SqlError {
-	ArrowError(ArrowError),
-	UnknownError(String),
-	SyntaxError,
-	EvalError(EvalError),
-}
-
-impl From<SqlError> for EvalError {
-	fn from(err: SqlError) -> Self {
-		EvalError::UserCodeError(format!("{:?}", err))
-	}
-}
-
-impl From<EvalError> for SqlError {
-	fn from(err: EvalError) -> Self {
-		SqlError::EvalError(err)
-	}
-}
 
 #[derive(Debug, Clone)]
 pub struct SqlMetadata {
@@ -31,9 +8,14 @@ pub struct SqlMetadata {
 }
 
 pub trait ConnectionImpl {
-	fn get_table_metadata(&self, table: &str) -> SqlResult<SqlMetadata>;
-	fn execute(&self, sql: &str) -> SqlResult<i64>;
-	fn collect(&self, sql: &str, result_metadata: SqlMetadata) -> SqlResult<RecordBatch>;
+	fn get_table_metadata(&self, ctx: &EvalContext, table: &str) -> EvalResult<SqlMetadata>;
+	fn execute(&self, ctx: &EvalContext, sql: &str) -> EvalResult<i64>;
+	fn collect(
+		&self,
+		ctx: &EvalContext,
+		sql: &str,
+		result_metadata: SqlMetadata,
+	) -> EvalResult<RecordBatch>;
 }
 
 pub struct Connection {
@@ -44,11 +26,5 @@ pub struct Connection {
 impl NativeType for Connection {
 	fn name() -> &'static str {
 		"Connection"
-	}
-}
-
-impl From<ArrowError> for SqlError {
-	fn from(err: ArrowError) -> Self {
-		SqlError::ArrowError(err)
 	}
 }

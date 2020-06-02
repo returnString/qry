@@ -1,5 +1,5 @@
 use qry::lang::{parse, BinaryOperator, SourceLocation, Syntax, SyntaxNode};
-use qry::runtime::{EvalError, Value};
+use qry::runtime::Value;
 
 pub mod helpers;
 
@@ -47,7 +47,7 @@ fn test_syntax() {
 
 #[test]
 fn test_syntax_failures() {
-	helpers::eval_expect_errors(&[("x", EvalError::NotFound("x".to_string()))]);
+	helpers::eval_expect_errors(&[("x",)]);
 }
 
 #[test]

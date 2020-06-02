@@ -8,7 +8,7 @@ fn print_value(ctx: &EvalContext, value: Value) {
 
 	match ctx.methods.to_string.call(&ctx, &[value], &[]) {
 		Ok(value_str) => print!(" {}", value_str.as_string()),
-		Err(err) => print!(" error in to_string: {:?}", err),
+		Err(err) => print!(" error in to_string: {}", err),
 	}
 
 	println!();
@@ -23,7 +23,7 @@ fn main() {
 			Ok(line) => match parse(&line) {
 				Ok(syntax) => match eval_multi(&ctx, &syntax) {
 					Ok(value) => print_value(&ctx, value),
-					Err(err) => println!("runtime error: {:?}", err),
+					Err(err) => println!("{}", err),
 				},
 				Err(err) => println!("parser error {:?}", err),
 			},

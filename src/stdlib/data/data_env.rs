@@ -29,10 +29,10 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 				Signature::returning(&Type::Int)
 					.param("connection", connection_type)
 					.param("query", &Type::String),
-				|_, args, _| {
+				|ctx, args, _| {
 					let conn = args[0].as_native::<Connection>();
 					let query = args[1].as_string();
-					Ok(Value::Int(conn.conn_impl.execute(query)?))
+					Ok(Value::Int(conn.conn_impl.execute(ctx, query)?))
 				},
 			),
 		);
@@ -55,9 +55,9 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 			"collect",
 			Builtin::new_value(
 				Signature::returning(dataframe_type).param("pipeline", pipeline_type),
-				|_, args, _| {
+				|ctx, args, _| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
-					let batch = pipeline.collect()?;
+					let batch = pipeline.collect(ctx)?;
 					let df = DataFrame::new(vec![batch]);
 					Ok(Value::new_native(df))
 				},
@@ -68,9 +68,9 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 			"render",
 			Builtin::new_value(
 				Signature::returning(&Type::String).param("pipeline", pipeline_type),
-				|_, args, _| {
+				|ctx, args, _| {
 					let pipeline = args[0].as_native::<QueryPipeline>();
-					let state = pipeline.generate()?;
+					let state = pipeline.generate(ctx)?;
 					Ok(Value::String(state.query.into()))
 				},
 			),

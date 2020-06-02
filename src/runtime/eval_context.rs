@@ -1,4 +1,4 @@
-use super::{Environment, EnvironmentPtr, Method, Value};
+use super::{Environment, EnvironmentPtr, Exception, Method, Value};
 use crate::lang::{BinaryOperator, SourceLocation, UnaryOperator};
 use crate::stdlib;
 use std::cell::RefCell;
@@ -86,5 +86,13 @@ impl EvalContext {
 	#[must_use]
 	pub fn with_stack_frame(&self, name: &str, location: &SourceLocation) -> EvalStackFrameScope {
 		EvalStackFrameScope::new(self, name, location)
+	}
+
+	pub fn exception<S: Into<String>>(&self, location: &SourceLocation, message: S) -> Exception {
+		Exception {
+			message: message.into(),
+			location: location.clone(),
+			stack: self.callstack.borrow().clone(),
+		}
 	}
 }

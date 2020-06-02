@@ -1,6 +1,6 @@
-use super::{SqlError, SqlMetadata, SqlResult};
+use super::SqlMetadata;
 use crate::lang::{BinaryOperator, Syntax, SyntaxNode};
-use crate::runtime::{eval, EvalContext, Type, Value};
+use crate::runtime::{eval, EvalContext, EvalResult, Type, Value};
 
 #[derive(Clone, Debug)]
 pub struct SqlExpression {
@@ -79,7 +79,7 @@ pub fn expr_to_sql(
 	ctx: &EvalContext,
 	expr: &SyntaxNode,
 	metadata: &SqlMetadata,
-) -> SqlResult<SqlExpression> {
+) -> EvalResult<SqlExpression> {
 	match &expr.syntax {
 		Syntax::Interpolate(contained_expr) => Ok(interpret_value(eval(ctx, contained_expr)?)),
 		Syntax::Null => Ok(null_literal()),
@@ -104,10 +104,10 @@ pub fn expr_to_sql(
 							text: format!("{} {} {}", lhs_val.text, binop_symbol(op), rhs_val.text),
 							sql_type: callable.signature().return_type.clone(),
 						}),
-						None => Err(SqlError::SyntaxError),
+						None => Err(ctx.exception(&expr.location, "failed to resolve method")),
 					}
 				}
-				None => Err(SqlError::SyntaxError),
+				None => Err(ctx.exception(&expr.location, "unhandled binary operator")),
 			}
 		}
 		Syntax::Switch { target, cases } => {
@@ -123,7 +123,7 @@ pub fn expr_to_sql(
 						target_val.text, case_val.text, return_val.text,
 					))
 				})
-				.collect::<SqlResult<Vec<_>>>()?;
+				.collect::<EvalResult<Vec<_>>>()?;
 
 			let text = format!("case {} end", whens.join(" "));
 
@@ -133,6 +133,6 @@ pub fn expr_to_sql(
 
 			Ok(SqlExpression { text, sql_type })
 		}
-		_ => Err(SqlError::SyntaxError),
+		_ => Err(ctx.exception(&expr.location, "unhandled syntax")),
 	}
 }

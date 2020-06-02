@@ -1,11 +1,13 @@
-use super::{Connection, ConnectionImpl, SqlError, SqlMetadata, SqlResult};
+use super::{Connection, ConnectionImpl, SqlMetadata};
+use crate::lang::SourceLocation;
 use crate::runtime::{EvalContext, EvalResult, Type, Value};
 use arrow::array::{ArrayBuilder, BooleanBuilder, Float64Builder, Int64Builder, StringBuilder};
 use arrow::datatypes::{DataType, Field, Schema};
+use arrow::error::Result as ArrowResult;
 use arrow::record_batch::RecordBatch;
 use lazy_static::lazy_static;
 use rusqlite::types::ValueRef;
-use rusqlite::{Connection as SqliteConnection, Error as SqliteError, NO_PARAMS};
+use rusqlite::{Connection as SqliteConnection, Result as SqliteResult, NO_PARAMS};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -31,8 +33,22 @@ lazy_static! {
 	};
 }
 
+pub fn arrow_op<T>(ctx: &EvalContext, res: ArrowResult<T>) -> EvalResult<T> {
+	match res {
+		Ok(val) => Ok(val),
+		Err(err) => Err(ctx.exception(&SourceLocation::Native, format!("arrow error: {}", err))),
+	}
+}
+
+pub fn sqlite_op<T>(ctx: &EvalContext, res: SqliteResult<T>) -> EvalResult<T> {
+	match res {
+		Ok(val) => Ok(val),
+		Err(err) => Err(ctx.exception(&SourceLocation::Native, format!("sqlite error: {}", err))),
+	}
+}
+
 macro_rules! write_cell {
-	($builder: expr, $builder_type: ty, $row: expr, $col_idx: expr, $write_func: expr, $getter: expr) => {{
+	($ctx: expr, $builder: expr, $builder_type: ty, $row: expr, $col_idx: expr, $write_func: expr, $getter: expr) => {{
 		let mut builder = $builder.borrow_mut();
 		let concrete_builder = builder
 			.as_any_mut()
@@ -40,14 +56,15 @@ macro_rules! write_cell {
 			.unwrap();
 
 		if let ValueRef::Null = $row.get_raw($col_idx) {
-			concrete_builder.append_null()?;
+			arrow_op($ctx, concrete_builder.append_null())?;
 		} else {
-			let val = $getter()?;
-			$write_func(concrete_builder, &val)?
+			let val = sqlite_op($ctx, $getter())?;
+			arrow_op($ctx, $write_func(concrete_builder, &val))?
 		}
 		}};
-	($builder: expr, $builder_type: ty, $row: expr, $col_idx: expr) => {{
+	($ctx: expr, $builder: expr, $builder_type: ty, $row: expr, $col_idx: expr) => {{
 		write_cell!(
+			$ctx,
 			$builder,
 			$builder_type,
 			$row,
@@ -59,9 +76,9 @@ macro_rules! write_cell {
 }
 
 impl ConnectionImpl for SqliteConnectionImpl {
-	fn get_table_metadata(&self, table: &str) -> SqlResult<SqlMetadata> {
+	fn get_table_metadata(&self, ctx: &EvalContext, table: &str) -> EvalResult<SqlMetadata> {
 		let names_query = format!("select * from {} limit 0", table);
-		let stmt = self.conn.prepare(&names_query)?;
+		let stmt = sqlite_op(ctx, self.conn.prepare(&names_query))?;
 
 		let col_names = stmt.column_names();
 
@@ -71,16 +88,16 @@ impl ConnectionImpl for SqliteConnectionImpl {
 			.collect::<Vec<_>>();
 
 		let type_query = format!("select {} from {} limit 1", typeof_calls.join(", "), table);
-		let mut stmt = self.conn.prepare(&type_query)?;
-		let mut rows = stmt.query(NO_PARAMS)?;
+		let mut stmt = sqlite_op(ctx, self.conn.prepare(&type_query))?;
+		let mut rows = sqlite_op(ctx, stmt.query(NO_PARAMS))?;
 
 		let mut metadata = SqlMetadata {
 			col_types: HashMap::new(),
 		};
 
-		if let Some(row) = rows.next()? {
+		if let Some(row) = sqlite_op(ctx, rows.next())? {
 			for (col_idx, name) in col_names.iter().enumerate() {
-				let col_affinity: String = row.get(col_idx)?;
+				let col_affinity: String = sqlite_op(ctx, row.get(col_idx))?;
 				let col_type = AFFINITY_MAP[&col_affinity].clone();
 				metadata.col_types.insert(name.to_string(), col_type);
 			}
@@ -89,13 +106,18 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		Ok(metadata)
 	}
 
-	fn execute(&self, sql: &str) -> SqlResult<i64> {
-		let rows = self.conn.execute(sql, NO_PARAMS)?;
+	fn execute(&self, ctx: &EvalContext, sql: &str) -> EvalResult<i64> {
+		let rows = sqlite_op(ctx, self.conn.execute(sql, NO_PARAMS))?;
 		Ok(rows as i64)
 	}
 
-	fn collect(&self, query: &str, result_metadata: SqlMetadata) -> SqlResult<RecordBatch> {
-		let mut stmt = self.conn.prepare(query)?;
+	fn collect(
+		&self,
+		ctx: &EvalContext,
+		query: &str,
+		result_metadata: SqlMetadata,
+	) -> EvalResult<RecordBatch> {
+		let mut stmt = sqlite_op(ctx, self.conn.prepare(query))?;
 
 		let col_metadata = stmt
 			.columns()
@@ -119,14 +141,15 @@ impl ConnectionImpl for SqliteConnectionImpl {
 			})
 			.collect::<Vec<_>>();
 
-		let mut rows = stmt.query(NO_PARAMS)?;
-		while let Some(row) = rows.next()? {
+		let mut rows = sqlite_op(ctx, stmt.query(NO_PARAMS))?;
+		while let Some(row) = sqlite_op(ctx, rows.next())? {
 			for (col_idx, (builder, (_, col_type))) in builders.iter().zip(&col_metadata).enumerate() {
 				match col_type {
-					Type::Int => write_cell!(builder, Int64Builder, row, col_idx),
-					Type::Float => write_cell!(builder, Float64Builder, row, col_idx),
-					Type::Bool => write_cell!(builder, BooleanBuilder, row, col_idx),
+					Type::Int => write_cell!(ctx, builder, Int64Builder, row, col_idx),
+					Type::Float => write_cell!(ctx, builder, Float64Builder, row, col_idx),
+					Type::Bool => write_cell!(ctx, builder, BooleanBuilder, row, col_idx),
 					Type::String => write_cell!(
+						ctx,
 						builder,
 						StringBuilder,
 						row,
@@ -157,23 +180,21 @@ impl ConnectionImpl for SqliteConnectionImpl {
 			.collect();
 
 		let cols = builders.iter().map(|b| b.borrow_mut().finish()).collect();
-		Ok(RecordBatch::try_new(Arc::new(Schema::new(fields)), cols)?)
+		Ok(arrow_op(
+			ctx,
+			RecordBatch::try_new(Arc::new(Schema::new(fields)), cols),
+		)?)
 	}
 }
 
-impl From<SqliteError> for SqlError {
-	fn from(err: SqliteError) -> Self {
-		SqlError::UnknownError(format!("{}", err))
-	}
-}
-
-fn sqlite_connect_impl(connstring: &str) -> SqlResult<SqliteConnection> {
-	Ok(SqliteConnection::open(connstring)?)
-}
-
-pub fn connect_sqlite(_: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult<Value> {
+pub fn connect_sqlite(ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult<Value> {
 	let connstring = args[0].as_string();
-	let sqlite_conn = sqlite_connect_impl(connstring)?;
+	let sqlite_conn = match SqliteConnection::open(connstring) {
+		Ok(conn) => conn,
+		Err(err) => {
+			return Err(ctx.exception(&SourceLocation::Native, format!("sqlite error: {}", err)))
+		}
+	};
 
 	Ok(Value::new_native(Connection {
 		driver: "sqlite".into(),

@@ -1,4 +1,4 @@
-use qry::runtime::{EvalError, Type, Value};
+use qry::runtime::{Type, Value};
 
 pub mod helpers;
 
@@ -34,8 +34,5 @@ fn test_functions() {
 
 #[test]
 fn test_function_failures() {
-	helpers::eval_expect_errors(&[
-		("1()", EvalError::NotCallable),
-		("typeof(1, 2)", EvalError::ArgMismatch),
-	]);
+	helpers::eval_expect_errors(&[("1()",), ("typeof(1, 2)",)]);
 }

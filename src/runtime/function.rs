@@ -1,6 +1,6 @@
 use super::{
-	assign_value, eval, eval_multi, Callable, EnvironmentPtr, EvalContext, EvalError, EvalResult,
-	Parameter, Signature, Value,
+	assign_value, eval, eval_multi, Callable, EnvironmentPtr, EvalContext, EvalResult, Parameter,
+	Signature, Value,
 };
 use crate::lang::{ParameterDef, SourceLocation, SyntaxNode};
 use std::rc::Rc;
@@ -26,7 +26,7 @@ pub fn eval_function_decl(
 		.iter()
 		.map(|p| match eval(ctx, &p.param_type)? {
 			Value::Type(t) => Ok(t),
-			_ => Err(EvalError::NotType),
+			_ => Err(ctx.exception(&p.param_type.location, "expected a type")),
 		})
 		.collect::<Result<Vec<_>, _>>()?;
 
@@ -47,11 +47,13 @@ pub fn eval_function_decl(
 			named_trailing_type: None,
 			return_type: match eval(ctx, return_type)? {
 				Value::Type(t) => t,
-				_ => return Err(EvalError::NotType),
+				_ => return Err(ctx.exception(&return_type.location, "expected a type")),
 			},
 		},
 		env: ctx.env.clone(),
-		name: name.clone().unwrap_or_else(|| "anon".into()),
+		name: name
+			.clone()
+			.unwrap_or_else(|| "<anonymous function>".into()),
 		location: location.clone(),
 	}));
 
