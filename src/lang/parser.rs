@@ -84,7 +84,7 @@ peg::parser! {
 			lhs:(@) _ "*" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Mul) }
 			lhs:(@) _ "/" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Div) }
 			--
-			name:(fn_named_prefix() / fn_anon_prefix()) _ "(" _ params:param_def() ** (_ "," _) ")" _ "->" _ return_type:expr() _ "{" _ body:expr()* _ "}"  {
+			name:(fn_named_prefix() / fn_anon_prefix()) _ "(" _ params:param_def() ** (_ "," _) ")" _ "->" _ return_type:expr() _ "{" _ body:expr() ** _  _ "}"  {
 				SyntaxTree::Function {
 					name,
 					params,
