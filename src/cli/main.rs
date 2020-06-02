@@ -1,14 +1,16 @@
 use qry::lang::parse;
-use qry::runtime::{eval_multi, Callable, EvalContext, Value};
+use qry::runtime::{eval_multi, EvalContext, Value};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 fn print_value(ctx: &EvalContext, value: Value) {
 	print!("({})", value.runtime_type().name());
 
-	match ctx.methods.to_string.call(&ctx, &[value], &[]) {
-		Ok(value_str) => print!(" {}", value_str.as_string()),
-		Err(err) => print!(" error in to_string: {}", err),
+	if let Some(to_string_func) = ctx.methods.to_string.resolve(&[value.runtime_type()]) {
+		match to_string_func.call(&ctx, &[value], &[]) {
+			Ok(value_str) => print!(" {}", value_str.as_string()),
+			Err(err) => print!(" error in to_string: {}", err),
+		}
 	}
 
 	println!();
