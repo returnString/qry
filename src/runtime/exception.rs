@@ -11,7 +11,8 @@ pub struct Exception {
 fn location_for_stacktrace(location: &SourceLocation) -> String {
 	match location {
 		SourceLocation::User { line, file } => format!("{}, line {}", file, line),
-		SourceLocation::Native => "native code".into(),
+		SourceLocation::Native { line, file } => format!("native: {}, line {}", file, line),
+		SourceLocation::Unknown => "unknown".into(),
 	}
 }
 

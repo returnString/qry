@@ -1,6 +1,7 @@
 use super::{Builtin, BuiltinFunc, NativeType, Signature, Type, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::panic::Location;
 use std::rc::Rc;
 
 #[derive(Default, Debug)]
@@ -53,8 +54,14 @@ impl Environment {
 		native_type
 	}
 
+	#[track_caller]
 	pub fn define_builtin(&mut self, name: &str, signature: Signature, func: BuiltinFunc) {
-		let builtin = Value::Builtin(Builtin::new(name, signature, func));
+		let builtin = Value::Builtin(Builtin::new(
+			name,
+			signature,
+			Location::caller().into(),
+			func,
+		));
 		self.update(name, builtin);
 	}
 }

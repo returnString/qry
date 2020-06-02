@@ -36,14 +36,14 @@ lazy_static! {
 pub fn arrow_op<T>(ctx: &EvalContext, res: ArrowResult<T>) -> EvalResult<T> {
 	match res {
 		Ok(val) => Ok(val),
-		Err(err) => Err(ctx.exception(&SourceLocation::Native, format!("arrow error: {}", err))),
+		Err(err) => Err(ctx.exception(&SourceLocation::Unknown, format!("arrow error: {}", err))),
 	}
 }
 
 pub fn sqlite_op<T>(ctx: &EvalContext, res: SqliteResult<T>) -> EvalResult<T> {
 	match res {
 		Ok(val) => Ok(val),
-		Err(err) => Err(ctx.exception(&SourceLocation::Native, format!("sqlite error: {}", err))),
+		Err(err) => Err(ctx.exception(&SourceLocation::Unknown, format!("sqlite error: {}", err))),
 	}
 }
 
@@ -192,7 +192,7 @@ pub fn connect_sqlite(ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) ->
 	let sqlite_conn = match SqliteConnection::open(connstring) {
 		Ok(conn) => conn,
 		Err(err) => {
-			return Err(ctx.exception(&SourceLocation::Native, format!("sqlite error: {}", err)))
+			return Err(ctx.exception(&SourceLocation::Unknown, format!("sqlite error: {}", err)))
 		}
 	};
 

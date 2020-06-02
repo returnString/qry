@@ -4,6 +4,7 @@ use super::{
 use crate::lang::SourceLocation;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::panic::Location;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -78,8 +79,14 @@ impl Method {
 		self.impls.borrow_mut().insert(key, callable);
 	}
 
+	#[track_caller]
 	pub fn register_builtin(&self, signature: Signature, func: BuiltinFunc) {
-		self.register(Builtin::new(&self.name, signature, func));
+		self.register(Builtin::new(
+			&self.name,
+			signature,
+			Location::caller().into(),
+			func,
+		));
 	}
 
 	pub fn resolve(&self, types: &[Type]) -> Option<Rc<dyn Callable>> {
@@ -94,7 +101,7 @@ impl Callable for Method {
 	}
 
 	fn source_location(&self) -> &SourceLocation {
-		&SourceLocation::Native
+		&SourceLocation::Unknown
 	}
 
 	fn name(&self) -> &str {
@@ -114,7 +121,7 @@ impl Callable for Method {
 		} else if let Some(callable) = &self.default_impl {
 			callable.call(ctx, args, named_trailing)
 		} else {
-			Err(ctx.exception(&SourceLocation::Native, "failed to resolve method"))
+			Err(ctx.exception(&SourceLocation::Unknown, "failed to resolve method"))
 		}
 	}
 }

@@ -10,14 +10,21 @@ pub struct Builtin {
 	name: String,
 	signature: Signature,
 	func: BuiltinFunc,
+	location: SourceLocation,
 }
 
 impl Builtin {
-	pub fn new(name: &str, signature: Signature, func: BuiltinFunc) -> Rc<Builtin> {
+	pub fn new(
+		name: &str,
+		signature: Signature,
+		location: SourceLocation,
+		func: BuiltinFunc,
+	) -> Rc<Builtin> {
 		Rc::new(Builtin {
 			name: name.into(),
 			signature,
 			func,
+			location,
 		})
 	}
 }
@@ -36,7 +43,7 @@ impl Callable for Builtin {
 	}
 
 	fn source_location(&self) -> &SourceLocation {
-		&SourceLocation::Native
+		&self.location
 	}
 
 	fn name(&self) -> &str {

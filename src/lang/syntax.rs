@@ -1,3 +1,4 @@
+use std::panic::Location;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -99,7 +100,17 @@ pub enum SyntaxTree<T> {
 #[derive(Debug, Clone, PartialEq)]
 pub enum SourceLocation {
 	User { line: usize, file: Rc<str> },
-	Native,
+	Native { line: usize, file: Rc<str> },
+	Unknown,
+}
+
+impl From<&Location<'_>> for SourceLocation {
+	fn from(loc: &Location) -> Self {
+		SourceLocation::Native {
+			line: loc.line() as usize,
+			file: loc.file().into(),
+		}
+	}
 }
 
 #[derive(Debug, Clone, PartialEq)]

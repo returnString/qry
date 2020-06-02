@@ -72,7 +72,7 @@ fn typecheck_val(ctx: &EvalContext, val: Value, expected_type: &Type) -> EvalRes
 		Ok(val)
 	} else {
 		Err(ctx.exception(
-			&SourceLocation::Native,
+			&SourceLocation::Unknown,
 			format!(
 				"typecheck failed: expected {}, got {}",
 				expected_type.name(),
@@ -101,11 +101,11 @@ pub fn eval_callable(
 	if num_supplied < num_expected_min
 		|| (sig.trailing_type.is_none() && num_supplied > num_expected_min)
 	{
-		return Err(ctx.exception(&SourceLocation::Native, "arg count mismatch"));
+		return Err(ctx.exception(&SourceLocation::Unknown, "arg count mismatch"));
 	}
 
 	if !named_trailing.is_empty() && sig.named_trailing_type.is_none() {
-		return Err(ctx.exception(&SourceLocation::Native, "too many args"));
+		return Err(ctx.exception(&SourceLocation::Unknown, "too many args"));
 	}
 
 	let args = positional
