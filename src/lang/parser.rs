@@ -1,4 +1,5 @@
 use crate::lang::syntax::*;
+use std::rc::Rc;
 
 fn unop(target: RawSyntaxNode, op: UnaryOperator) -> SyntaxTree<RawSyntaxNode> {
 	SyntaxTree::UnaryOp {
@@ -137,6 +138,7 @@ struct RawSyntaxNode {
 }
 
 struct SourceLocationMapper {
+	filename: Rc<str>,
 	linebreak_offsets: Vec<usize>,
 }
 
@@ -215,7 +217,10 @@ impl SourceLocationMapper {
 
 		Box::new(SyntaxNode {
 			syntax: new_syntax,
-			location: SourceLocation::User { line },
+			location: SourceLocation::User {
+				line,
+				file: self.filename.clone(),
+			},
 		})
 	}
 }
@@ -231,10 +236,14 @@ fn linebreaks_from_source(src: &str) -> Vec<usize> {
 		.collect()
 }
 
-pub fn parse(src: &str) -> Result<Vec<SyntaxNode>, peg::error::ParseError<peg::str::LineCol>> {
+pub fn parse(
+	src: &str,
+	filename: &str,
+) -> Result<Vec<SyntaxNode>, peg::error::ParseError<peg::str::LineCol>> {
 	let raw_roots = parser::program(src)?;
 	let src_mapper = SourceLocationMapper {
 		linebreak_offsets: linebreaks_from_source(src),
+		filename: filename.into(),
 	};
 	Ok(raw_roots.iter().map(|r| *src_mapper.map(r)).collect())
 }

@@ -22,7 +22,7 @@ fn main() {
 
 	loop {
 		match rl.readline("> ") {
-			Ok(line) => match parse(&line) {
+			Ok(line) => match parse(&line, "<repl>") {
 				Ok(syntax) => match eval_multi(&ctx, &syntax) {
 					Ok(value) => print_value(&ctx, value),
 					Err(err) => println!("{}", err),

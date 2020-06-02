@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BinaryOperator {
 	Add,
@@ -96,7 +98,7 @@ pub enum SyntaxTree<T> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SourceLocation {
-	User { line: usize },
+	User { line: usize, file: Rc<str> },
 	Native,
 }
 

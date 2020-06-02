@@ -2,7 +2,7 @@ use qry::lang::parse;
 use qry::runtime::{eval_multi, EvalContext, EvalResult, Value};
 
 pub fn eval_src(src: &str) -> EvalResult<Value> {
-	let exprs = parse(src).unwrap_or_else(|err| panic!("parse failed ({}): {:?}", src, err));
+	let exprs = parse(src, "tests").unwrap_or_else(|err| panic!("parse failed ({}): {:?}", src, err));
 	eval_multi(&EvalContext::new_with_stdlib(), &exprs)
 }
 

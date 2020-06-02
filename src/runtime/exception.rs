@@ -10,7 +10,7 @@ pub struct Exception {
 
 fn location_for_stacktrace(location: &SourceLocation) -> String {
 	match location {
-		SourceLocation::User { line } => format!("line {}", line),
+		SourceLocation::User { line, file } => format!("{}, line {}", file, line),
 		SourceLocation::Native => "native code".into(),
 	}
 }
