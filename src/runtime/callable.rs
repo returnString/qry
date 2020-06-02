@@ -101,7 +101,7 @@ pub fn eval_callable(
 	if num_supplied < num_expected_min
 		|| (sig.trailing_type.is_none() && num_supplied > num_expected_min)
 	{
-		return Err(ctx.exception(&SourceLocation::Native, "not enough args"));
+		return Err(ctx.exception(&SourceLocation::Native, "arg count mismatch"));
 	}
 
 	if !named_trailing.is_empty() && sig.named_trailing_type.is_none() {

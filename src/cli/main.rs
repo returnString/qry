@@ -2,6 +2,8 @@ use qry::lang::parse;
 use qry::runtime::{eval_multi, EvalContext, Value};
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::env;
+use std::fs;
 
 fn print_value(ctx: &EvalContext, value: Value) {
 	print!("({})", value.runtime_type().name());
@@ -16,7 +18,7 @@ fn print_value(ctx: &EvalContext, value: Value) {
 	println!();
 }
 
-fn main() {
+fn repl() {
 	let mut rl = Editor::<()>::new();
 	let ctx = EvalContext::new_with_stdlib();
 
@@ -35,5 +37,20 @@ fn main() {
 				break;
 			}
 		}
+	}
+}
+
+fn main() {
+	let args = env::args().skip(1).collect::<Vec<_>>();
+	if args.is_empty() {
+		repl();
+		return;
+	}
+
+	let script_contents = fs::read_to_string(&args[0]).unwrap();
+	let ast = parse(&script_contents, &args[0]).unwrap();
+	let ctx = EvalContext::new_with_stdlib();
+	if let Err(ex) = eval_multi(&ctx, &ast) {
+		println!("{}", ex);
 	}
 }
