@@ -1,4 +1,4 @@
-use qry::lang::{parse, BinaryOperator, Syntax, SyntaxNode};
+use qry::lang::{parse, BinaryOperator, SourceLocation, Syntax, SyntaxNode};
 use qry::runtime::{EvalError, Value};
 
 pub mod helpers;
@@ -62,32 +62,32 @@ pipe
 
 	let exprs = parse(multiline_src).unwrap();
 	assert_eq!(exprs.len(), 3);
+
 	assert_eq!(
 		exprs[0],
 		SyntaxNode {
-			line: 1,
+			location: SourceLocation::User { line: 1 },
 			syntax: Syntax::Ident("test".to_string()),
 		}
 	);
+
 	assert_eq!(
 		exprs[1],
 		SyntaxNode {
-			line: 2,
+			location: SourceLocation::User { line: 2 },
 			syntax: Syntax::BinaryOp {
 				op: BinaryOperator::Add,
 				lhs: Box::new(SyntaxNode {
-					line: 2,
+					location: SourceLocation::User { line: 2 },
 					syntax: Syntax::Ident("x".to_string()),
 				}),
 				rhs: Box::new(SyntaxNode {
-					line: 3,
+					location: SourceLocation::User { line: 3 },
 					syntax: Syntax::Int(1)
 				}),
 			}
 		}
 	);
-
-	println!("{:?}", exprs[2]);
 
 	assert_eq!(
 		exprs[2],
@@ -99,35 +99,35 @@ pipe
 						op: BinaryOperator::Pipe,
 						lhs: Box::new(SyntaxNode {
 							syntax: Syntax::Ident("pipe".to_string()),
-							line: 4
+							location: SourceLocation::User { line: 4 }
 						}),
 						rhs: Box::new(SyntaxNode {
 							syntax: Syntax::Call {
 								target: Box::new(SyntaxNode {
 									syntax: Syntax::Ident("into".to_string()),
-									line: 5,
+									location: SourceLocation::User { line: 5 }
 								}),
 								positional_args: vec![],
 								named_args: vec![],
 							},
-							line: 5,
+							location: SourceLocation::User { line: 5 }
 						}),
 					},
-					line: 4,
+					location: SourceLocation::User { line: 4 }
 				}),
 				rhs: Box::new(SyntaxNode {
 					syntax: Syntax::Call {
 						target: Box::new(SyntaxNode {
 							syntax: Syntax::Ident("something".to_string()),
-							line: 6,
+							location: SourceLocation::User { line: 6 }
 						}),
 						positional_args: vec![],
 						named_args: vec![],
 					},
-					line: 6,
+					location: SourceLocation::User { line: 6 }
 				}),
 			},
-			line: 4,
+			location: SourceLocation::User { line: 4 },
 		}
 	);
 }

@@ -215,7 +215,7 @@ impl SourceLocationMapper {
 
 		Box::new(SyntaxNode {
 			syntax: new_syntax,
-			line,
+			location: SourceLocation::User { line },
 		})
 	}
 }

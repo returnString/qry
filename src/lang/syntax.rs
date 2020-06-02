@@ -95,9 +95,15 @@ pub enum SyntaxTree<T> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum SourceLocation {
+	User { line: usize },
+	Native,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct SyntaxNode {
 	pub syntax: SyntaxTree<Self>,
-	pub line: usize,
+	pub location: SourceLocation,
 }
 
 pub type Syntax = SyntaxTree<SyntaxNode>;
