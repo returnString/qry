@@ -57,7 +57,7 @@ impl Environment {
 	#[track_caller]
 	pub fn define_builtin(&mut self, name: &str, signature: Signature, func: BuiltinFunc) {
 		let builtin = Value::Builtin(Builtin::new(
-			name,
+			&format!("{}::{}", self.name, name),
 			signature,
 			Location::caller().into(),
 			func,
