@@ -22,7 +22,7 @@ fn eval_assign(ctx: &EvalContext, dest: &SyntaxNode, src: &SyntaxNode) -> EvalRe
 
 fn eval_unop(ctx: &EvalContext, target: &SyntaxNode, op: UnaryOperator) -> EvalResult<Value> {
 	let method = &ctx.methods.unops[&op];
-	method.call(ctx, &[eval(ctx, target)?], &[])
+	eval_callable(ctx, &**method, &[target.clone()], &[])
 }
 
 fn eval_binop(
@@ -79,7 +79,7 @@ fn eval_binop(
 		},
 		_ => {
 			let method = &ctx.methods.binops[&op];
-			method.call(ctx, &[eval(ctx, lhs)?, eval(ctx, rhs)?], &[])
+			eval_callable(ctx, &**method, &[lhs.clone(), rhs.clone()], &[])
 		}
 	}
 }
