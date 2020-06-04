@@ -6,7 +6,7 @@ pub mod helpers;
 fn test_imports() {
 	helpers::eval_expect_values(&[
 		("use core::{Int} Int", Value::Type(Type::Int)),
-		("use core core::Int", Value::Type(Type::Int)),
+		("core::Int", Value::Type(Type::Int)),
 	]);
 }
 

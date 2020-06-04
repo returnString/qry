@@ -56,11 +56,15 @@ impl EvalContext {
 		let add_lib = |env_ptr: EnvironmentPtr, add_to_global| {
 			let lib_val = Value::Library(env_ptr.clone());
 			let env = env_ptr.borrow();
-			library_env_ptr.borrow_mut().update(env.name(), lib_val);
+			library_env_ptr
+				.borrow_mut()
+				.update(env.name(), lib_val.clone());
 
 			if add_to_global {
 				env.copy_to(&mut global_env_ptr.borrow_mut());
 			}
+
+			global_env_ptr.borrow_mut().update(env.name(), lib_val);
 		};
 
 		let (ops_methods, ops_env) = stdlib::ops::create();

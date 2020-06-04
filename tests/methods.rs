@@ -5,7 +5,7 @@ pub mod helpers;
 #[test]
 fn test_methods() {
 	helpers::eval_expect_values(&[
-		("use ops ops::add(ops::add(1, 2), 10)", Value::Int(13)),
+		("ops::add(ops::add(1, 2), 10)", Value::Int(13)),
 		("1 + 2 + 10", Value::Int(13)),
 		("\"hai\" + \"world\"", Value::String("haiworld".into())),
 		("9 / 2", Value::Int(4)),
@@ -38,8 +38,7 @@ fn test_methods() {
 		("to_string(false)", Value::String("false".into())),
 		("to_string(null)", Value::String("null".into())),
 		(
-			r#"use ops
-			impl ops::add(a: Null, b: Null) -> String { "why though" }
+			r#"impl ops::add(a: Null, b: Null) -> String { "why though" }
 			null + null"#,
 			Value::String("why though".into()),
 		),
@@ -48,5 +47,5 @@ fn test_methods() {
 
 #[test]
 fn test_method_failures() {
-	helpers::eval_expect_errors(&[("use ops ops::add(null, null)",), ("null + null",)]);
+	helpers::eval_expect_errors(&[("ops::add(null, null)",), ("null + null",)]);
 }
