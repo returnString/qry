@@ -39,11 +39,14 @@ peg::parser! {
 		rule import_lib() -> Import
 			= name:ident() { Import::Named(vec![name]) }
 
-		rule fn_named_prefix() -> Option<String>
-			= "fn" __ name:ident() { Some(name) }
+		rule fn_named_prefix() -> FunctionHeader<RawSyntaxNode>
+			= "fn" __ name:ident() { FunctionHeader::Function(Some(name)) }
 
-		rule fn_anon_prefix() -> Option<String>
-			= "fn" { None }
+		rule fn_anon_prefix() -> FunctionHeader<RawSyntaxNode>
+			= "fn" { FunctionHeader::Function(None) }
+
+		rule fn_method_impl() -> FunctionHeader<RawSyntaxNode>
+			= "impl" __ impl_for:expr() { FunctionHeader::MethodImpl { impl_for: Box::new(impl_for) } }
 
 		rule named_arg() -> (Option<String>, RawSyntaxNode)
 			= name:ident() _ "=" _ expr:expr() { (Some(name), expr) }
@@ -84,9 +87,9 @@ peg::parser! {
 			lhs:(@) _ "*" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Mul) }
 			lhs:(@) _ "/" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Div) }
 			--
-			name:(fn_named_prefix() / fn_anon_prefix()) _ "(" _ params:param_def() ** (_ "," _) ")" _ "->" _ return_type:expr() _ "{" _ body:expr() ** _  _ "}"  {
+			header:(fn_named_prefix() / fn_anon_prefix() / fn_method_impl()) _ "(" _ params:param_def() ** (_ "," _) ")" _ "->" _ return_type:expr() _ "{" _ body:expr() ** _  _ "}"  {
 				SyntaxTree::Function {
-					name,
+					header,
 					params,
 					body,
 					return_type: Box::new(return_type)
@@ -178,12 +181,17 @@ impl SourceLocationMapper {
 				import: import.clone(),
 			},
 			SyntaxTree::Function {
-				name,
+				header,
 				params,
 				return_type,
 				body,
 			} => SyntaxTree::Function {
-				name: name.clone(),
+				header: match header {
+					FunctionHeader::Function(n) => FunctionHeader::Function(n.clone()),
+					FunctionHeader::MethodImpl { impl_for } => FunctionHeader::MethodImpl {
+						impl_for: self.map(impl_for),
+					},
+				},
 				params: params
 					.iter()
 					.map(|p| ParameterDef {

@@ -151,11 +151,11 @@ pub fn eval(ctx: &EvalContext, node: &SyntaxNode) -> EvalResult<Value> {
 			"interpolation not supported in regular code",
 		)),
 		Syntax::Function {
-			name,
+			header,
 			params,
 			return_type,
 			body,
-		} => eval_function_decl(ctx, &node.location, name, params, return_type, body),
+		} => eval_function_decl(ctx, &node.location, header, params, return_type, body),
 		Syntax::Use { from, import } => eval_import(ctx, node, from, import),
 		Syntax::Ident(name) => {
 			if let Some(val) = ctx.env.borrow().get(name) {

@@ -37,6 +37,12 @@ fn test_methods() {
 		("to_string(true)", Value::String("true".into())),
 		("to_string(false)", Value::String("false".into())),
 		("to_string(null)", Value::String("null".into())),
+		(
+			r#"use ops
+			impl ops::add(a: Null, b: Null) -> String { "why though" }
+			null + null"#,
+			Value::String("why though".into()),
+		),
 	]);
 }
 

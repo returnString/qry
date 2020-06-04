@@ -2,7 +2,7 @@ use super::{
 	assign_value, eval, eval_multi, Callable, EnvironmentPtr, EvalContext, EvalResult, Parameter,
 	Signature, Value,
 };
-use crate::lang::{ParameterDef, SourceLocation, SyntaxNode};
+use crate::lang::{FunctionHeader, ParameterDef, SourceLocation, SyntaxNode};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -17,7 +17,7 @@ pub struct Function {
 pub fn eval_function_decl(
 	ctx: &EvalContext,
 	location: &SourceLocation,
-	name: &Option<String>,
+	header: &FunctionHeader<SyntaxNode>,
 	params: &[ParameterDef<SyntaxNode>],
 	return_type: &SyntaxNode,
 	body: &[SyntaxNode],
@@ -39,7 +39,7 @@ pub fn eval_function_decl(
 		})
 		.collect();
 
-	let function = Value::Function(Rc::new(Function {
+	let function = Rc::new(Function {
 		body: body.to_vec(),
 		signature: Signature {
 			params,
@@ -51,17 +51,29 @@ pub fn eval_function_decl(
 			},
 		},
 		env: ctx.env.clone(),
-		name: name
-			.clone()
-			.unwrap_or_else(|| "<anonymous function>".into()),
+		name: match header {
+			FunctionHeader::Function(Some(name)) => name,
+			FunctionHeader::Function(None) => "<anonymous function>",
+			FunctionHeader::MethodImpl { .. } => "<method impl>",
+		}
+		.into(),
 		location: location.clone(),
-	}));
+	});
 
-	if let Some(name) = name {
-		assign_value(ctx, name, function.clone())?;
-	}
+	let function_val = Value::Function(function.clone());
 
-	Ok(function)
+	match header {
+		FunctionHeader::Function(Some(name)) => {
+			assign_value(ctx, name, function_val.clone())?;
+		}
+		FunctionHeader::MethodImpl { impl_for } => {
+			let method = eval(ctx, impl_for)?.as_method();
+			method.register(function);
+		}
+		_ => (),
+	};
+
+	Ok(function_val)
 }
 
 impl Callable for Function {

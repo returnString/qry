@@ -43,6 +43,12 @@ pub enum Import {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum FunctionHeader<T> {
+	Function(Option<String>),
+	MethodImpl { impl_for: Box<T> },
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct ParameterDef<T> {
 	pub name: String,
 	pub param_type: T,
@@ -77,7 +83,7 @@ pub enum SyntaxTree<T> {
 		target: Box<T>,
 	},
 	Function {
-		name: Option<String>,
+		header: FunctionHeader<T>,
 		params: Vec<ParameterDef<T>>,
 		return_type: Box<T>,
 		body: Vec<T>,
