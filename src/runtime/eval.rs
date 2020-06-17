@@ -1,5 +1,5 @@
 use super::{
-	eval_callable, eval_function_decl, Callable, EnvironmentPtr, EvalContext, Exception, Value,
+	eval_callable, eval_function_decl, Callable, EnvironmentPtr, EvalContext, Exception, Type, Value,
 };
 use crate::lang::syntax::*;
 
@@ -207,6 +207,28 @@ pub fn eval(ctx: &EvalContext, node: &SyntaxNode) -> EvalResult<Value> {
 
 			let ret = ctx.methods.index.call(ctx, &args, &[])?;
 			Ok(ret)
+		}
+		Syntax::GenericInstantiation { target, type_args } => {
+			let generic_lookup = match eval(ctx, target)? {
+				Value::Type(t) => match t {
+					Type::Native(d) => match d.generic_lookup {
+						Some(l) => Ok(l),
+						_ => Err(ctx.exception(&target.location, "native type is not generic")),
+					},
+					_ => Err(ctx.exception(&target.location, "unsupported type for generics")),
+				},
+				_ => Err(ctx.exception(&target.location, "unsupported value type for generics")),
+			}?;
+
+			let types = type_args
+				.iter()
+				.map(|a| match eval(ctx, a)? {
+					Value::Type(t) => Ok(t),
+					_ => Err(ctx.exception(&a.location, "expected a type")),
+				})
+				.collect::<EvalResult<Vec<_>>>()?;
+
+			Ok(Value::Type(generic_lookup(ctx, &types)?))
 		}
 	}
 }

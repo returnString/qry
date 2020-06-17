@@ -59,33 +59,34 @@ peg::parser! {
 			= s:$(!"\"" [_])* { s.iter().fold("".to_string(), |acc, val| format!("{}{}", acc, val)) }
 
 		rule switch_case() -> SwitchCase<RawSyntaxNode>
-			= expr:expr() _ "=>" _ returns:expr() { SwitchCase { expr, returns } }
+			= expr:expr() __ "=>" __ returns:expr() { SwitchCase { expr, returns } }
 
 		rule expr() -> RawSyntaxNode = precedence!{
 			start_pos:position!() syntax:@ end_pos:position!() { RawSyntaxNode { start_pos, end_pos, syntax } }
 			--
-			lhs:@ _ "<-" _ rhs:(@) { binop(lhs, rhs, BinaryOperator::LAssign) }
+			lhs:@ __ "<-" __ rhs:(@) { binop(lhs, rhs, BinaryOperator::LAssign) }
 			--
-			lhs:(@) _ "->" _ rhs:@ { binop(lhs, rhs, BinaryOperator::RAssign) }
+			lhs:(@) __ "->" __ rhs:@ { binop(lhs, rhs, BinaryOperator::RAssign) }
 			--
-			lhs:(@) _ "|" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Or) }
+			lhs:(@) __ "|" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Or) }
 			--
-			lhs:(@) _ "&" _ rhs:@ { binop(lhs, rhs, BinaryOperator::And) }
+			lhs:(@) __ "&" __ rhs:@ { binop(lhs, rhs, BinaryOperator::And) }
 			--
 			"!" _ target:@ { unop(target, UnaryOperator::Negate) }
 			--
-			lhs:(@) _ "==" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Equal) }
-			lhs:(@) _ "!=" _ rhs:@ { binop(lhs, rhs, BinaryOperator::NotEqual) }
-			lhs:(@) _ ">" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Gt) }
-			lhs:(@) _ ">=" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Gte) }
-			lhs:(@) _ "<" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Lt) }
-			lhs:(@) _ "<=" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Lte) }
+			lhs:(@) __ "==" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Equal) }
+			lhs:(@) __ "!=" __ rhs:@ { binop(lhs, rhs, BinaryOperator::NotEqual) }
 			--
-			lhs:(@) _ "+" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Add) }
-			lhs:(@) _ "-" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Sub) }
+			lhs:(@) __ ">" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Gt) }
+			lhs:(@) __ ">=" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Gte) }
+			lhs:(@) __ "<" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Lt) }
+			lhs:(@) __ "<=" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Lte) }
 			--
-			lhs:(@) _ "*" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Mul) }
-			lhs:(@) _ "/" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Div) }
+			lhs:(@) __ "+" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Add) }
+			lhs:(@) __ "-" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Sub) }
+			--
+			lhs:(@) __ "*" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Mul) }
+			lhs:(@) __ "/" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Div) }
 			--
 			header:(fn_named_prefix() / fn_anon_prefix() / fn_method_impl()) _ "(" _ params:param_def() ** (_ "," _) ")" _ "->" _ return_type:expr() _ "{" _ body:expr() ** _  _ "}"  {
 				SyntaxTree::Function {
@@ -96,9 +97,9 @@ peg::parser! {
 				}
 			}
 			--
-			lhs:(@) _ "|>" _ rhs:@ { binop(lhs, rhs, BinaryOperator::Pipe) }
+			lhs:(@) __ "|>" __ rhs:@ { binop(lhs, rhs, BinaryOperator::Pipe) }
 			--
-			"-" _ target:@ { unop(target, UnaryOperator::Minus) }
+			"-" target:@ { unop(target, UnaryOperator::Minus) }
 			--
 			target:@ "(" _ args:(named_arg() / positional_arg()) ** (_ "," _) ")" {
 				SyntaxTree::Call {
@@ -109,6 +110,8 @@ peg::parser! {
 			}
 			--
 			target:(@) "[" keys:expr() ** (_ "," _) "]" { SyntaxTree::Index { target: Box::new(target), keys } }
+			--
+			target:(@) "<" type_args:expr() ** (_ "," _) ">" { SyntaxTree::GenericInstantiation { target: Box::new(target), type_args } }
 			--
 			lhs:(@) "::" rhs:@ { binop(lhs, rhs, BinaryOperator::Access) }
 			--
@@ -215,6 +218,10 @@ impl SourceLocationMapper {
 			SyntaxTree::Index { target, keys } => SyntaxTree::Index {
 				target: self.map(target),
 				keys: keys.iter().map(|k| *self.map(k)).collect(),
+			},
+			SyntaxTree::GenericInstantiation { target, type_args } => SyntaxTree::GenericInstantiation {
+				target: self.map(target),
+				type_args: type_args.iter().map(|k| *self.map(k)).collect(),
 			},
 		};
 

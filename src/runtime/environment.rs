@@ -1,4 +1,6 @@
-use super::{Builtin, BuiltinFunc, NativeType, Signature, Type, Value};
+use super::{
+	Builtin, BuiltinFunc, Callable, Method, NativeGenericType, NativeType, Signature, Type, Value,
+};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::panic::Location;
@@ -54,6 +56,12 @@ impl Environment {
 		native_type
 	}
 
+	pub fn define_native_generic_type<T: 'static + NativeGenericType>(&mut self) -> Type {
+		let native_type = Type::new_native_generic::<T>();
+		self.update(T::name(), Value::Type(native_type.clone()));
+		native_type
+	}
+
 	#[track_caller]
 	pub fn define_builtin(&mut self, name: &str, signature: Signature, func: BuiltinFunc) {
 		let builtin = Value::Builtin(Builtin::new(
@@ -63,5 +71,17 @@ impl Environment {
 			func,
 		));
 		self.update(name, builtin);
+	}
+
+	pub fn define_method(
+		&mut self,
+		name: &str,
+		dispatch_param_names: &[&str],
+		fixed_return_type: Option<Type>,
+		default_impl: Option<Rc<dyn Callable>>,
+	) -> Rc<Method> {
+		let method = Method::new(name, dispatch_param_names, fixed_return_type, default_impl);
+		self.update(name, Value::Method(method.clone()));
+		method
 	}
 }

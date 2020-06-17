@@ -1,6 +1,6 @@
 use super::{
-	connect_sqlite, df_to_string, Connection, DataFrame, FilterStep, MutateStep, QueryPipeline,
-	SelectStep,
+	connect_sqlite, df_to_string, Connection, DataFrame, FilterStep, IntVector, MutateStep,
+	QueryPipeline, SelectStep, Vector,
 };
 use crate::runtime::{Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value};
 use std::rc::Rc;
@@ -12,6 +12,26 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 		let connection_type = &env.define_native_type::<Connection>();
 		let pipeline_type = &env.define_native_type::<QueryPipeline>();
 		let dataframe_type = &env.define_native_type::<DataFrame>();
+		env.define_native_generic_type::<Vector>();
+		let intvector_type = &env.define_native_type::<IntVector>();
+
+		let sum_method = env.define_method("sum", &["vec"], None, None);
+		sum_method.register_builtin(
+			Signature::returning(&Type::Int).param("vec", intvector_type),
+			|_, args, _| {
+				let vec = args[0].as_native::<IntVector>();
+				Ok(Value::Int(vec.sum()))
+			},
+		);
+
+		env.define_builtin(
+			"intvec",
+			Signature::returning(intvector_type).with_trailing(&Type::Int),
+			|_, args, _| {
+				let vec = IntVector::from_values(args);
+				Ok(Value::new_native(vec))
+			},
+		);
 
 		env.define_builtin(
 			"connect_sqlite",

@@ -97,3 +97,14 @@ fn test_data_sqlite() {
 		),
 	]);
 }
+
+#[test]
+fn test_vectors() {
+	helpers::eval_expect_values(&[
+		("data::intvec(1, 2, 3) |> data::sum()", Value::Int(6)),
+		(
+			"typeof(data::intvec(1)) == data::Vector<Int>",
+			Value::Bool(true),
+		),
+	]);
+}

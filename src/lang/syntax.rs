@@ -101,6 +101,10 @@ pub enum SyntaxTree<T> {
 		target: Box<T>,
 		keys: Vec<T>,
 	},
+	GenericInstantiation {
+		target: Box<T>,
+		type_args: Vec<T>,
+	},
 }
 
 #[derive(Debug, Clone, PartialEq)]
