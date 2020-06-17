@@ -232,6 +232,7 @@ fn init_binops() -> HashMap<BinaryOperator, Rc<Method>> {
 	numeric_binops!(m, Float, Int, Float, f64);
 
 	equality_ops!(m, Bool, Bool, bool);
+	equality_ops!(m, Type, Type, Type);
 	binop!(and, Bool, Bool, Bool, |a, b| a && b);
 	binop!(or, Bool, Bool, Bool, |a, b| a || b);
 
