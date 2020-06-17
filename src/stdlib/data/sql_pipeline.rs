@@ -116,7 +116,6 @@ pub trait PipelineStep {
 	fn render(&self, ctx: &EvalContext, state: RenderState) -> EvalResult<RenderState>;
 }
 
-#[derive(Clone)]
 pub struct FromStep {
 	table: String,
 }
@@ -132,7 +131,6 @@ impl PipelineStep for FromStep {
 	}
 }
 
-#[derive(Clone)]
 pub struct FilterStep {
 	pub ctx: EvalContext,
 	pub predicate: SyntaxNode,
@@ -155,7 +153,6 @@ impl PipelineStep for FilterStep {
 	}
 }
 
-#[derive(Clone)]
 pub struct SelectStep {
 	pub ctx: EvalContext,
 	pub cols: Vec<SyntaxNode>,
@@ -190,7 +187,6 @@ impl PipelineStep for SelectStep {
 	}
 }
 
-#[derive(Clone)]
 pub struct MutateStep {
 	pub ctx: EvalContext,
 	pub new_cols: Vec<(String, SyntaxNode)>,
@@ -235,7 +231,6 @@ impl PipelineStep for MutateStep {
 	}
 }
 
-#[derive(Clone)]
 pub struct GroupStep {
 	pub ctx: EvalContext,
 	pub grouping: Vec<SyntaxNode>,
@@ -255,7 +250,6 @@ impl PipelineStep for GroupStep {
 	}
 }
 
-#[derive(Clone)]
 pub struct AggregateStep {
 	pub ctx: EvalContext,
 	pub aggregations: Vec<(String, SyntaxNode)>,
