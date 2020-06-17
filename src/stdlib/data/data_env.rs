@@ -1,6 +1,6 @@
 use super::{
-	connect_sqlite, df_to_string, Connection, DataFrame, FilterStep, IntVector, MutateStep,
-	QueryPipeline, SelectStep, Vector,
+	connect_sqlite, df_to_string, AggregateStep, Connection, DataFrame, FilterStep, GroupStep,
+	IntVector, MutateStep, QueryPipeline, SelectStep, Vector,
 };
 use crate::runtime::{Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value};
 use std::rc::Rc;
@@ -135,6 +135,46 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 				let step = MutateStep {
 					ctx: ctx.clone(),
 					new_cols,
+				};
+				Ok(Value::new_native(pipeline.add(Rc::new(step))))
+			},
+		);
+
+		env.define_builtin(
+			"group_by",
+			Signature::returning(pipeline_type)
+				.param("pipeline", pipeline_type)
+				.with_trailing(&Type::SyntaxPlaceholder),
+			|ctx, args, _| {
+				let pipeline = args[0].as_native::<QueryPipeline>();
+				let grouping = args[1..]
+					.iter()
+					.map(|a| a.as_syntax().clone())
+					.collect::<Vec<_>>();
+
+				let step = GroupStep {
+					ctx: ctx.clone(),
+					grouping,
+				};
+				Ok(Value::new_native(pipeline.add(Rc::new(step))))
+			},
+		);
+
+		env.define_builtin(
+			"aggregate",
+			Signature::returning(pipeline_type)
+				.param("pipeline", pipeline_type)
+				.with_named_trailing(&Type::SyntaxPlaceholder),
+			|ctx, args, named_args| {
+				let pipeline = args[0].as_native::<QueryPipeline>();
+				let aggregations = named_args
+					.iter()
+					.map(|(n, a)| (n.to_string(), a.as_syntax().clone()))
+					.collect::<Vec<_>>();
+
+				let step = AggregateStep {
+					ctx: ctx.clone(),
+					aggregations,
 				};
 				Ok(Value::new_native(pipeline.add(Rc::new(step))))
 			},

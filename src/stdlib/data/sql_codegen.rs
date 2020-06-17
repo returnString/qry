@@ -1,6 +1,6 @@
-use super::SqlMetadata;
+use super::{SqlMetadata, Vector};
 use crate::lang::{BinaryOperator, Syntax, SyntaxNode};
-use crate::runtime::{eval, EvalContext, EvalResult, Type, Value};
+use crate::runtime::{eval, EvalContext, EvalResult, NativeGenericType, Type, Value};
 
 #[derive(Clone, Debug)]
 pub struct SqlExpression {
@@ -79,6 +79,7 @@ pub fn expr_to_sql(
 	ctx: &EvalContext,
 	expr: &SyntaxNode,
 	metadata: &SqlMetadata,
+	as_aggregation: bool,
 ) -> EvalResult<SqlExpression> {
 	match &expr.syntax {
 		Syntax::Interpolate(contained_expr) => Ok(interpret_value(eval(ctx, contained_expr)?)),
@@ -87,14 +88,13 @@ pub fn expr_to_sql(
 		Syntax::Int(i) => Ok(int_literal(*i)),
 		Syntax::Float(f) => Ok(float_literal(*f)),
 		Syntax::Bool(b) => Ok(bool_literal(*b)),
-		// FIXME: add proper types for columns when we started needing proper op dispatch
 		Syntax::Ident(col_name) => Ok(SqlExpression {
 			text: col_name.to_string(),
 			sql_type: metadata.col_types[col_name].clone(),
 		}),
 		Syntax::BinaryOp { lhs, op, rhs } => {
-			let lhs_val = expr_to_sql(ctx, lhs, metadata)?;
-			let rhs_val = expr_to_sql(ctx, rhs, metadata)?;
+			let lhs_val = expr_to_sql(ctx, lhs, metadata, as_aggregation)?;
+			let rhs_val = expr_to_sql(ctx, rhs, metadata, as_aggregation)?;
 			match ctx.methods.binops.get(&op) {
 				Some(method) => {
 					let resolved = method.resolve(&[lhs_val.sql_type, rhs_val.sql_type]);
@@ -111,13 +111,13 @@ pub fn expr_to_sql(
 			}
 		}
 		Syntax::Switch { target, cases } => {
-			let target_val = expr_to_sql(ctx, target, metadata)?;
+			let target_val = expr_to_sql(ctx, target, metadata, as_aggregation)?;
 
 			let whens = cases
 				.iter()
 				.map(|c| {
-					let case_val = expr_to_sql(ctx, &c.expr, metadata)?;
-					let return_val = expr_to_sql(ctx, &c.returns, metadata)?;
+					let case_val = expr_to_sql(ctx, &c.expr, metadata, as_aggregation)?;
+					let return_val = expr_to_sql(ctx, &c.returns, metadata, as_aggregation)?;
 					Ok(format!(
 						"when {} == {} then {}",
 						target_val.text, case_val.text, return_val.text,
@@ -129,9 +129,59 @@ pub fn expr_to_sql(
 
 			// TODO: validate consistency of return types
 			// for now, just use the first
-			let sql_type = (expr_to_sql(ctx, &cases[0].returns, metadata)?).sql_type;
+			let sql_type = expr_to_sql(ctx, &cases[0].returns, metadata, as_aggregation)?.sql_type;
 
 			Ok(SqlExpression { text, sql_type })
+		}
+		Syntax::Call {
+			target,
+			positional_args,
+			..
+		} => {
+			let target_ident = match &target.syntax {
+				Syntax::Ident(n) => Ok(n),
+				_ => Err(ctx.exception(&target.location, "expected identifier for call")),
+			}?;
+
+			let method = ctx
+				.env
+				.borrow()
+				.get(&target_ident)
+				.ok_or_else(|| ctx.exception(&target.location, "no method found"))?
+				.as_method();
+
+			let args = positional_args
+				.iter()
+				.map(|a| expr_to_sql(ctx, a, metadata, as_aggregation))
+				.collect::<EvalResult<Vec<_>>>()?;
+
+			let arg_text = args
+				.iter()
+				.map(|a| a.text.clone())
+				.collect::<Vec<_>>()
+				.join(", ");
+
+			let arg_types = args
+				.iter()
+				.map(|a| {
+					if as_aggregation {
+						Ok(Vector::resolve(ctx, &[a.sql_type.clone()])?)
+					} else {
+						Ok(a.sql_type.clone())
+					}
+				})
+				.collect::<EvalResult<Vec<_>>>()?;
+
+			let text = format!("{}({})", method.name(), arg_text);
+
+			let method_impl = method
+				.resolve(&arg_types)
+				.ok_or_else(|| ctx.exception(&expr.location, "failed to resolve method impl"))?;
+
+			Ok(SqlExpression {
+				text,
+				sql_type: method_impl.signature().return_type.clone(),
+			})
 		}
 		_ => Err(ctx.exception(&expr.location, "unhandled syntax")),
 	}
