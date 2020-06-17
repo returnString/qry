@@ -199,6 +199,19 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 		);
 
 		env.define_builtin(
+			"col",
+			// TODO: need variance in return types for returning e.g. a Vector<Int>
+			// when the signature only knows it's a Vector<?>
+			Signature::returning(&Type::Any)
+				.param("df", dataframe_type)
+				.param("name", &Type::String),
+			|_, args, _| {
+				let df = args[0].as_native::<DataFrame>();
+				Ok(df.col(args[1].as_string()))
+			},
+		);
+
+		env.define_builtin(
 			"dimensions",
 			Signature::returning(&Type::List).param("df", dataframe_type),
 			|_, args, _| {

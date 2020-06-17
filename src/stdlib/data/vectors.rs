@@ -1,6 +1,7 @@
 use crate::lang::SourceLocation;
 use crate::runtime::{EvalContext, EvalResult, NativeGenericType, NativeType, Type, Value};
-use arrow::array::{Int64Array, Int64Builder};
+use arrow::array::{ArrayRef, Int64Array, Int64Builder};
+use std::sync::Arc;
 
 pub struct Vector;
 
@@ -24,10 +25,16 @@ impl NativeGenericType for Vector {
 }
 
 pub struct IntVector {
-	data: Int64Array,
+	data: Vec<ArrayRef>,
 }
 
 impl IntVector {
+	pub fn from_arrays(arrays: &[ArrayRef]) -> Self {
+		Self {
+			data: arrays.into(),
+		}
+	}
+
 	pub fn from_values(values: &[Value]) -> Self {
 		let mut builder = Int64Builder::new(values.len());
 		for value in values {
@@ -35,15 +42,19 @@ impl IntVector {
 		}
 
 		Self {
-			data: builder.finish(),
+			data: vec![Arc::new(builder.finish())],
 		}
 	}
 
 	pub fn sum(&self) -> i64 {
 		let mut ret = 0;
-		for i in 0..self.data.len() {
-			ret += self.data.value(i);
+		for arr in &self.data {
+			let concrete_arr = arr.as_any().downcast_ref::<Int64Array>().unwrap();
+			for i in 0..concrete_arr.len() {
+				ret += concrete_arr.value(i);
+			}
 		}
+
 		ret
 	}
 }

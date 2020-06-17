@@ -107,6 +107,18 @@ fn test_data_sqlite() {
 			),
 			Value::List(vec![Value::Int(3), Value::Int(2)]),
 		),
+		(
+			&with_table_bootstrap(
+				r#"
+				test_table
+					|> aggregate(total_age = sum(age))
+					|> collect()
+					|> col("total_age")
+					|> sum()
+				"#,
+			),
+			Value::Int(80),
+		),
 	]);
 }
 

@@ -1,4 +1,5 @@
-use crate::runtime::NativeType;
+use super::IntVector;
+use crate::runtime::{NativeType, Value};
 use arrow::array::{BooleanArray, Float64Array, Int64Array, StringArray};
 use arrow::datatypes::DataType;
 use arrow::record_batch::RecordBatch;
@@ -84,5 +85,19 @@ impl DataFrame {
 
 	pub fn num_cols(&self) -> i64 {
 		self.num_cols
+	}
+
+	pub fn col(&self, name: &str) -> Value {
+		let (col_idx, field) = self.batches[0].schema().column_with_name(name).unwrap();
+		let arrays = self
+			.batches
+			.iter()
+			.map(|b| b.column(col_idx).clone())
+			.collect::<Vec<_>>();
+
+		match field.data_type() {
+			DataType::Int64 => Value::new_native(IntVector::from_arrays(&arrays)),
+			_ => panic!("unhandled datatype"),
+		}
 	}
 }
