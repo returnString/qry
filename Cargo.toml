@@ -11,6 +11,7 @@ arrow = { version = "0.16.0", features = ["simd"] }
 rusqlite = { version = "0.21.0", features = ["bundled"] }
 lazy_static = "1.4.0"
 prettytable-rs = "0.8.0"
+indexmap = "1.4.0"
 
 [[bin]]
 name = "qry"

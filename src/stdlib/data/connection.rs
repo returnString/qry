@@ -1,20 +1,15 @@
-use crate::runtime::{EvalContext, EvalResult, NativeType, Type};
+use super::ColumnMap;
+use crate::runtime::{EvalContext, EvalResult, NativeType};
 use arrow::record_batch::RecordBatch;
-use std::collections::HashMap;
-
-#[derive(Debug, Clone)]
-pub struct SqlMetadata {
-	pub col_types: HashMap<String, Type>,
-}
 
 pub trait ConnectionImpl {
-	fn get_table_metadata(&self, ctx: &EvalContext, table: &str) -> EvalResult<SqlMetadata>;
+	fn get_relation_metadata(&self, ctx: &EvalContext, table: &str) -> EvalResult<ColumnMap>;
 	fn execute(&self, ctx: &EvalContext, sql: &str) -> EvalResult<i64>;
 	fn collect(
 		&self,
 		ctx: &EvalContext,
 		sql: &str,
-		result_metadata: SqlMetadata,
+		result_metadata: &ColumnMap,
 	) -> EvalResult<RecordBatch>;
 }
 

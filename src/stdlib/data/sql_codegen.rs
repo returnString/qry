@@ -1,4 +1,4 @@
-use super::{SqlMetadata, Vector};
+use super::{ColumnMap, Vector};
 use crate::lang::{BinaryOperator, Syntax, SyntaxNode};
 use crate::runtime::{eval, EvalContext, EvalResult, NativeGenericType, Type, Value};
 
@@ -78,7 +78,7 @@ fn interpret_value(val: Value) -> SqlExpression {
 pub fn expr_to_sql(
 	ctx: &EvalContext,
 	expr: &SyntaxNode,
-	metadata: &SqlMetadata,
+	metadata: &ColumnMap,
 	as_aggregation: bool,
 ) -> EvalResult<SqlExpression> {
 	match &expr.syntax {
@@ -90,7 +90,7 @@ pub fn expr_to_sql(
 		Syntax::Bool(b) => Ok(bool_literal(*b)),
 		Syntax::Ident(col_name) => Ok(SqlExpression {
 			text: col_name.to_string(),
-			sql_type: metadata.col_types[col_name].clone(),
+			sql_type: metadata[col_name].data_type.clone(),
 		}),
 		Syntax::BinaryOp { lhs, op, rhs } => {
 			let lhs_val = expr_to_sql(ctx, lhs, metadata, as_aggregation)?;

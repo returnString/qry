@@ -1,8 +1,8 @@
-use super::{expr_to_sql, Connection, SqlMetadata};
+use super::{expr_to_sql, Connection};
 use crate::lang::SyntaxNode;
-use crate::runtime::{EvalContext, EvalResult, NativeType};
+use crate::runtime::{EvalContext, EvalResult, NativeType, Type};
 use arrow::record_batch::RecordBatch;
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicI64, Ordering};
 
@@ -39,9 +39,7 @@ impl QueryPipeline {
 			conn: self.conn.clone(),
 			metadata: QueryMetadata {
 				grouping: vec![],
-				cols: SqlMetadata {
-					col_types: HashMap::new(),
-				},
+				columns: IndexMap::new(),
 			},
 			counter: Rc::new(AtomicI64::new(0)),
 			query: "".into(),
@@ -59,20 +57,34 @@ impl QueryPipeline {
 		self
 			.conn
 			.conn_impl
-			.collect(ctx, &state.query, state.metadata.cols)
+			.collect(ctx, &state.query, &state.metadata.columns)
 	}
 }
 
 #[derive(Clone)]
+pub enum ColumnKind {
+	Named,
+	Computed(String),
+}
+
+#[derive(Clone)]
+pub struct QueryColumn {
+	pub data_type: Type,
+	pub kind: ColumnKind,
+}
+
+pub type ColumnMap = IndexMap<String, QueryColumn>;
+
+#[derive(Clone)]
 pub struct QueryMetadata {
-	pub cols: SqlMetadata,
+	pub columns: ColumnMap,
 	pub grouping: Vec<String>,
 }
 
 impl QueryMetadata {
-	pub fn with_cols(&self, cols: SqlMetadata) -> Self {
+	pub fn with_cols(&self, columns: ColumnMap) -> Self {
 		QueryMetadata {
-			cols,
+			columns,
 			..self.clone()
 		}
 	}
@@ -122,8 +134,11 @@ pub struct FromStep {
 
 impl PipelineStep for FromStep {
 	fn render(&self, ctx: &EvalContext, state: RenderState) -> EvalResult<RenderState> {
-		let metadata = state.conn.conn_impl.get_table_metadata(ctx, &self.table)?;
-		let column_names = metadata.col_types.keys().cloned().collect::<Vec<_>>();
+		let metadata = state
+			.conn
+			.conn_impl
+			.get_relation_metadata(ctx, &self.table)?;
+		let column_names = metadata.keys().cloned().collect::<Vec<_>>();
 		let select = column_names.join(", ");
 		Ok(state.wrap(state.metadata.with_cols(metadata), |_| {
 			format!("select {} from {}", select, self.table)
@@ -138,14 +153,8 @@ pub struct FilterStep {
 
 impl PipelineStep for FilterStep {
 	fn render(&self, _: &EvalContext, state: RenderState) -> EvalResult<RenderState> {
-		let predicate = expr_to_sql(&self.ctx, &self.predicate, &state.metadata.cols, false)?;
-		let column_names = state
-			.metadata
-			.cols
-			.col_types
-			.keys()
-			.cloned()
-			.collect::<Vec<_>>();
+		let predicate = expr_to_sql(&self.ctx, &self.predicate, &state.metadata.columns, false)?;
+		let column_names = state.metadata.columns.keys().cloned().collect::<Vec<_>>();
 		let select = column_names.join(", ");
 		Ok(state.wrap(state.metadata.clone(), |sub| {
 			format!("select {} from {} where {}", select, sub, predicate.text)
@@ -163,27 +172,23 @@ impl PipelineStep for SelectStep {
 		let col_exprs = self
 			.cols
 			.iter()
-			.map(|c| expr_to_sql(&self.ctx, c, &state.metadata.cols, false))
+			.map(|c| expr_to_sql(&self.ctx, c, &state.metadata.columns, false))
 			.collect::<EvalResult<Vec<_>>>()?;
 
 		let col_names = col_exprs.iter().map(|e| e.text.clone()).collect::<Vec<_>>();
 
 		let new_col_types = state
 			.metadata
-			.cols
-			.col_types
+			.columns
 			.clone()
 			.into_iter()
 			.filter(|(k, _)| col_names.contains(k))
-			.collect::<HashMap<_, _>>();
+			.collect::<ColumnMap>();
 
 		let select = col_names.join(", ");
-		Ok(state.wrap(
-			state.metadata.with_cols(SqlMetadata {
-				col_types: new_col_types,
-			}),
-			|sub| format!("select {} from {}", select, sub),
-		))
+		Ok(state.wrap(state.metadata.with_cols(new_col_types), |sub| {
+			format!("select {} from {}", select, sub)
+		}))
 	}
 }
 
@@ -197,23 +202,30 @@ impl PipelineStep for MutateStep {
 		let new_col_exprs = self
 			.new_cols
 			.iter()
-			.map(|(n, e)| Ok((n, expr_to_sql(&self.ctx, e, &state.metadata.cols, false)?)))
+			.map(|(n, e)| {
+				Ok((
+					n,
+					expr_to_sql(&self.ctx, e, &state.metadata.columns, false)?,
+				))
+			})
 			.collect::<EvalResult<Vec<_>>>()?;
 
 		let mut new_metadata = state.metadata.clone();
 		for (name, sql_expr) in &new_col_exprs {
-			new_metadata
-				.cols
-				.col_types
-				.insert(name.to_string(), sql_expr.sql_type.clone());
+			new_metadata.columns.insert(
+				name.to_string(),
+				QueryColumn {
+					data_type: sql_expr.sql_type.clone(),
+					kind: ColumnKind::Computed(sql_expr.text.clone()),
+				},
+			);
 		}
 
 		let new_names = self.new_cols.iter().map(|(n, _)| n).collect::<Vec<_>>();
 
 		let old_cols = state
 			.metadata
-			.cols
-			.col_types
+			.columns
 			.keys()
 			.filter(|k| !new_names.contains(k))
 			.cloned();
@@ -242,7 +254,7 @@ impl PipelineStep for GroupStep {
 			self
 				.grouping
 				.iter()
-				.map(|g| Ok(expr_to_sql(&self.ctx, g, &state.metadata.cols, false)?.text))
+				.map(|g| Ok(expr_to_sql(&self.ctx, g, &state.metadata.columns, false)?.text))
 				.collect::<EvalResult<Vec<_>>>()?,
 		);
 
@@ -260,17 +272,20 @@ impl PipelineStep for AggregateStep {
 		let aggregation_exprs = self
 			.aggregations
 			.iter()
-			.map(|(n, e)| Ok((n, expr_to_sql(&self.ctx, e, &state.metadata.cols, true)?)))
+			.map(|(n, e)| Ok((n, expr_to_sql(&self.ctx, e, &state.metadata.columns, true)?)))
 			.collect::<EvalResult<Vec<_>>>()?;
 
 		let mut new_metadata = state.metadata.clone();
 		new_metadata.grouping.clear();
 
 		for (name, sql_expr) in &aggregation_exprs {
-			new_metadata
-				.cols
-				.col_types
-				.insert(name.to_string(), sql_expr.sql_type.clone());
+			new_metadata.columns.insert(
+				name.to_string(),
+				QueryColumn {
+					data_type: sql_expr.sql_type.clone(),
+					kind: ColumnKind::Computed(sql_expr.text.clone()),
+				},
+			);
 		}
 
 		let aggregation_cols = aggregation_exprs

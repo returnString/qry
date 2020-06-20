@@ -1,4 +1,4 @@
-use super::{Connection, ConnectionImpl, SqlMetadata};
+use super::{ColumnKind, ColumnMap, Connection, ConnectionImpl, QueryColumn};
 use crate::lang::SourceLocation;
 use crate::runtime::{EvalContext, EvalResult, Type, Value};
 use arrow::array::{ArrayBuilder, BooleanBuilder, Float64Builder, Int64Builder, StringBuilder};
@@ -76,7 +76,7 @@ macro_rules! write_cell {
 }
 
 impl ConnectionImpl for SqliteConnectionImpl {
-	fn get_table_metadata(&self, ctx: &EvalContext, table: &str) -> EvalResult<SqlMetadata> {
+	fn get_relation_metadata(&self, ctx: &EvalContext, table: &str) -> EvalResult<ColumnMap> {
 		let names_query = format!("select * from {} limit 0", table);
 		let stmt = sqlite_op(ctx, self.conn.prepare(&names_query))?;
 
@@ -91,15 +91,19 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		let mut stmt = sqlite_op(ctx, self.conn.prepare(&type_query))?;
 		let mut rows = sqlite_op(ctx, stmt.query(NO_PARAMS))?;
 
-		let mut metadata = SqlMetadata {
-			col_types: HashMap::new(),
-		};
+		let mut metadata = ColumnMap::new();
 
 		if let Some(row) = sqlite_op(ctx, rows.next())? {
 			for (col_idx, name) in col_names.iter().enumerate() {
 				let col_affinity: String = sqlite_op(ctx, row.get(col_idx))?;
-				let col_type = AFFINITY_MAP[&col_affinity].clone();
-				metadata.col_types.insert(name.to_string(), col_type);
+				let data_type = AFFINITY_MAP[&col_affinity].clone();
+				metadata.insert(
+					name.to_string(),
+					QueryColumn {
+						data_type,
+						kind: ColumnKind::Named,
+					},
+				);
 			}
 		}
 
@@ -115,24 +119,19 @@ impl ConnectionImpl for SqliteConnectionImpl {
 		&self,
 		ctx: &EvalContext,
 		query: &str,
-		result_metadata: SqlMetadata,
+		result_metadata: &ColumnMap,
 	) -> EvalResult<RecordBatch> {
 		let mut stmt = sqlite_op(ctx, self.conn.prepare(query))?;
 
 		let col_metadata = stmt
 			.columns()
 			.iter()
-			.map(|c| {
-				(
-					c.name().to_string(),
-					result_metadata.col_types[c.name()].clone(),
-				)
-			})
+			.map(|c| (c.name().to_string(), result_metadata[c.name()].clone()))
 			.collect::<Vec<_>>();
 
 		let builders = col_metadata
 			.iter()
-			.map(|(_, c)| match c {
+			.map(|(_, c)| match c.data_type {
 				Type::Int => box_builder(Int64Builder::new(0)),
 				Type::Float => box_builder(Float64Builder::new(0)),
 				Type::Bool => box_builder(BooleanBuilder::new(0)),
@@ -143,8 +142,8 @@ impl ConnectionImpl for SqliteConnectionImpl {
 
 		let mut rows = sqlite_op(ctx, stmt.query(NO_PARAMS))?;
 		while let Some(row) = sqlite_op(ctx, rows.next())? {
-			for (col_idx, (builder, (_, col_type))) in builders.iter().zip(&col_metadata).enumerate() {
-				match col_type {
+			for (col_idx, (builder, (_, col))) in builders.iter().zip(&col_metadata).enumerate() {
+				match col.data_type {
 					Type::Int => write_cell!(ctx, builder, Int64Builder, row, col_idx),
 					Type::Float => write_cell!(ctx, builder, Float64Builder, row, col_idx),
 					Type::Bool => write_cell!(ctx, builder, BooleanBuilder, row, col_idx),
@@ -167,7 +166,7 @@ impl ConnectionImpl for SqliteConnectionImpl {
 			.map(|(n, c)| {
 				Field::new(
 					n,
-					match c {
+					match c.data_type {
 						Type::Int => DataType::Int64,
 						Type::Float => DataType::Float64,
 						Type::Bool => DataType::Boolean,
