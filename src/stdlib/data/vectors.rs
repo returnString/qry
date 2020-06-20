@@ -29,9 +29,12 @@ pub struct IntVector {
 }
 
 impl IntVector {
-	pub fn from_arrays(arrays: &[ArrayRef]) -> Self {
+	pub fn from_arrays<'a, I>(arrays: I) -> Self
+	where
+		I: IntoIterator<Item = &'a ArrayRef>,
+	{
 		Self {
-			data: arrays.into(),
+			data: arrays.into_iter().cloned().collect(),
 		}
 	}
 

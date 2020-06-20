@@ -89,14 +89,9 @@ impl DataFrame {
 
 	pub fn col(&self, name: &str) -> Value {
 		let (col_idx, field) = self.batches[0].schema().column_with_name(name).unwrap();
-		let arrays = self
-			.batches
-			.iter()
-			.map(|b| b.column(col_idx).clone())
-			.collect::<Vec<_>>();
-
+		let arrays = self.batches.iter().map(|b| b.column(col_idx));
 		match field.data_type() {
-			DataType::Int64 => Value::new_native(IntVector::from_arrays(&arrays)),
+			DataType::Int64 => Value::new_native(IntVector::from_arrays(arrays)),
 			_ => panic!("unhandled datatype"),
 		}
 	}
