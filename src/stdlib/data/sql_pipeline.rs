@@ -106,19 +106,42 @@ pub struct RenderState {
 }
 
 impl RenderState {
-	pub fn subquery(&self) -> String {
-		let alias_index = self.counter.fetch_add(1, Ordering::SeqCst);
-		format!("({}) qry_{}", self.query, alias_index)
-	}
+	pub fn wrap(&self, metadata: &QueryMetadata, trailing: Option<&str>) -> RenderState {
+		let col_strs = metadata
+			.columns
+			.iter()
+			.map(|(n, c)| match &c.kind {
+				ColumnKind::Named => n.clone(),
+				ColumnKind::Computed(expr_text) => format!("{} as {}", expr_text, n),
+			})
+			.collect::<Vec<_>>();
 
-	pub fn wrap<F>(&self, metadata: QueryMetadata, f: F) -> RenderState
-	where
-		F: Fn(&str) -> String,
-	{
-		let new_query = f(&self.subquery());
+		let new_cols = metadata
+			.columns
+			.iter()
+			.map(|(n, c)| {
+				(
+					n.clone(),
+					QueryColumn {
+						kind: ColumnKind::Named,
+						data_type: c.data_type.clone(),
+					},
+				)
+			})
+			.collect();
+
+		let alias_index = self.counter.fetch_add(1, Ordering::SeqCst);
+		let query = format!(
+			"select {} from ({}) qry_{} {}",
+			col_strs.join(", "),
+			self.query,
+			alias_index,
+			trailing.unwrap_or(""),
+		);
+
 		RenderState {
-			query: new_query,
-			metadata,
+			query,
+			metadata: metadata.with_cols(new_cols),
 			..self.clone()
 		}
 	}
@@ -134,15 +157,21 @@ pub struct FromStep {
 
 impl PipelineStep for FromStep {
 	fn render(&self, ctx: &EvalContext, state: RenderState) -> EvalResult<RenderState> {
-		let metadata = state
+		let columns = state
 			.conn
 			.conn_impl
 			.get_relation_metadata(ctx, &self.table)?;
-		let column_names = metadata.keys().cloned().collect::<Vec<_>>();
+		let column_names = columns.keys().cloned().collect::<Vec<_>>();
 		let select = column_names.join(", ");
-		Ok(state.wrap(state.metadata.with_cols(metadata), |_| {
-			format!("select {} from {}", select, self.table)
-		}))
+
+		Ok(RenderState {
+			metadata: QueryMetadata {
+				columns,
+				grouping: vec![],
+			},
+			query: format!("select {} from {}", select, self.table),
+			..state
+		})
 	}
 }
 
@@ -154,11 +183,7 @@ pub struct FilterStep {
 impl PipelineStep for FilterStep {
 	fn render(&self, _: &EvalContext, state: RenderState) -> EvalResult<RenderState> {
 		let predicate = expr_to_sql(&self.ctx, &self.predicate, &state.metadata.columns, false)?;
-		let column_names = state.metadata.columns.keys().cloned().collect::<Vec<_>>();
-		let select = column_names.join(", ");
-		Ok(state.wrap(state.metadata.clone(), |sub| {
-			format!("select {} from {} where {}", select, sub, predicate.text)
-		}))
+		Ok(state.wrap(&state.metadata, Some(&format!("where {}", predicate.text))))
 	}
 }
 
@@ -185,10 +210,7 @@ impl PipelineStep for SelectStep {
 			.filter(|(k, _)| col_names.contains(k))
 			.collect::<ColumnMap>();
 
-		let select = col_names.join(", ");
-		Ok(state.wrap(state.metadata.with_cols(new_col_types), |sub| {
-			format!("select {} from {}", select, sub)
-		}))
+		Ok(state.wrap(&state.metadata.with_cols(new_col_types), None))
 	}
 }
 
@@ -221,25 +243,7 @@ impl PipelineStep for MutateStep {
 			);
 		}
 
-		let new_names = self.new_cols.iter().map(|(n, _)| n).collect::<Vec<_>>();
-
-		let old_cols = state
-			.metadata
-			.columns
-			.keys()
-			.filter(|k| !new_names.contains(k))
-			.cloned();
-
-		let new_cols = new_col_exprs
-			.iter()
-			.map(|(n, c)| format!("{} as {}", c.text, n));
-
-		let all_cols = old_cols.chain(new_cols).collect::<Vec<_>>();
-		let select = all_cols.join(", ");
-
-		Ok(state.wrap(new_metadata, |sub| {
-			format!("select {} from {}", select, sub)
-		}))
+		Ok(state.wrap(&new_metadata, None))
 	}
 }
 
@@ -258,7 +262,7 @@ impl PipelineStep for GroupStep {
 				.collect::<EvalResult<Vec<_>>>()?,
 		);
 
-		Ok(state.wrap(new_metadata, |q| q.into()))
+		Ok(state.wrap(&new_metadata, None))
 	}
 }
 
@@ -275,11 +279,20 @@ impl PipelineStep for AggregateStep {
 			.map(|(n, e)| Ok((n, expr_to_sql(&self.ctx, e, &state.metadata.columns, true)?)))
 			.collect::<EvalResult<Vec<_>>>()?;
 
-		let mut new_metadata = state.metadata.clone();
-		new_metadata.grouping.clear();
+		let mut new_columns = ColumnMap::new();
+
+		for name in &state.metadata.grouping {
+			new_columns.insert(
+				name.to_string(),
+				QueryColumn {
+					data_type: state.metadata.columns[name].data_type.clone(),
+					kind: ColumnKind::Named,
+				},
+			);
+		}
 
 		for (name, sql_expr) in &aggregation_exprs {
-			new_metadata.columns.insert(
+			new_columns.insert(
 				name.to_string(),
 				QueryColumn {
 					data_type: sql_expr.sql_type.clone(),
@@ -288,27 +301,18 @@ impl PipelineStep for AggregateStep {
 			);
 		}
 
-		let aggregation_cols = aggregation_exprs
-			.iter()
-			.map(|(n, c)| format!("{} as {}", c.text, n));
-
-		let all_cols = state
-			.clone()
-			.metadata
-			.grouping
-			.into_iter()
-			.chain(aggregation_cols)
-			.collect::<Vec<_>>();
-
-		let select = all_cols.join(", ");
-		let group_by = if state.metadata.grouping.is_empty() {
-			"".into()
-		} else {
-			format!("group by {}", state.metadata.grouping.join(", "))
+		let new_metadata = QueryMetadata {
+			columns: new_columns,
+			grouping: vec![],
 		};
 
-		Ok(state.wrap(new_metadata, |sub| {
-			format!("select {} from {} {}", select, sub, group_by)
-		}))
+		if state.metadata.grouping.is_empty() {
+			Ok(state.wrap(&new_metadata, None))
+		} else {
+			Ok(state.wrap(
+				&new_metadata,
+				Some(&format!("group by {}", state.metadata.grouping.join(", "))),
+			))
+		}
 	}
 }
