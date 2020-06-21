@@ -1,6 +1,8 @@
+#![cfg(not(target_arch = "wasm32"))]
+
 use super::{ColumnKind, ColumnMap, Connection, ConnectionImpl, QueryColumn};
 use crate::lang::SourceLocation;
-use crate::runtime::{EvalContext, EvalResult, Type, Value};
+use crate::runtime::{Environment, EvalContext, EvalResult, Signature, Type, Value};
 use arrow::array::{ArrayBuilder, BooleanBuilder, Float64Builder, Int64Builder, StringBuilder};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::error::Result as ArrowResult;
@@ -186,7 +188,7 @@ impl ConnectionImpl for SqliteConnectionImpl {
 	}
 }
 
-pub fn connect_sqlite(ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult<Value> {
+fn connect_sqlite(ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult<Value> {
 	let connstring = args[0].as_string();
 	let sqlite_conn = match SqliteConnection::open(connstring) {
 		Ok(conn) => conn,
@@ -199,4 +201,14 @@ pub fn connect_sqlite(ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) ->
 		driver: "sqlite".into(),
 		conn_impl: Box::new(SqliteConnectionImpl { conn: sqlite_conn }),
 	}))
+}
+
+pub fn sqlite_init_env(env: &mut Environment) {
+	let connection_type = &env.get("Connection").unwrap().as_type();
+
+	env.define_builtin(
+		"connect_sqlite",
+		Signature::returning(connection_type).param("connstring", &Type::String),
+		connect_sqlite,
+	);
 }

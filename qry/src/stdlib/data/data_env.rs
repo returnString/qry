@@ -1,6 +1,8 @@
+#[cfg(not(target_arch = "wasm32"))]
+use super::sqlite::sqlite_init_env;
 use super::{
-	connect_sqlite, df_to_string, AggregateStep, Connection, DataFrame, FilterStep, GroupStep,
-	IntVector, MutateStep, QueryPipeline, SelectStep, Vector,
+	df_to_string, AggregateStep, Connection, DataFrame, FilterStep, GroupStep, IntVector, MutateStep,
+	QueryPipeline, SelectStep, Vector,
 };
 use crate::runtime::{Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value};
 use std::rc::Rc;
@@ -33,11 +35,8 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 			},
 		);
 
-		env.define_builtin(
-			"connect_sqlite",
-			Signature::returning(connection_type).param("connstring", &Type::String),
-			connect_sqlite,
-		);
+		#[cfg(not(target_arch = "wasm32"))]
+		sqlite_init_env(&mut env);
 
 		env.define_builtin(
 			"execute",

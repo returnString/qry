@@ -3,6 +3,7 @@ use crate::runtime::{NativeType, Value};
 use arrow::array::{BooleanArray, Float64Array, Int64Array, StringArray};
 use arrow::datatypes::DataType;
 use arrow::record_batch::RecordBatch;
+#[cfg(not(target_arch = "wasm32"))]
 use prettytable::{Cell, Row, Table};
 
 macro_rules! array_cast {
@@ -20,6 +21,12 @@ macro_rules! array_val {
 	};
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn df_to_string(_: &DataFrame) -> String {
+	unimplemented!()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn df_to_string(df: &DataFrame) -> String {
 	let batches = &df.batches;
 	let mut table = Table::new();
