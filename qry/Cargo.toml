@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Ruan Pearce-Authers <ruanpa@outlook.com>"]
 edition = "2018"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 peg = "0.6.2"
 arrow = { version = "0.16.0", default-features = false }
