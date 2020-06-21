@@ -1,2 +1,5 @@
 import * as qry from 'qry-web';
-qry.run('data::intvec(1, 2, 3) |> data::sum()')
+
+const interpreter = new qry.Interpreter()
+const editor = document.getElementById('editor')
+document.getElementById('eval').onclick = () => interpreter.eval(editor.value)
