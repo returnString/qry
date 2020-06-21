@@ -1,0 +1,13 @@
+[package]
+name = "qry"
+version = "0.1.0"
+authors = ["Ruan Pearce-Authers <ruanpa@outlook.com>"]
+edition = "2018"
+
+[dependencies]
+peg = "0.6.2"
+arrow = { version = "0.16.0", features = ["simd"] }
+rusqlite = { version = "0.21.0", features = ["bundled"] }
+lazy_static = "1.4.0"
+prettytable-rs = "0.8.0"
+indexmap = "1.4.0"
