@@ -136,14 +136,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cli"
-version = "0.1.0"
-dependencies = [
- "qry",
- "rustyline",
-]
-
-[[package]]
 name = "cloudabi"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -510,11 +502,27 @@ dependencies = [
 name = "qry"
 version = "0.1.0"
 dependencies = [
+ "qry-lang",
+ "qry-runtime",
+ "rustyline",
+]
+
+[[package]]
+name = "qry-lang"
+version = "0.1.0"
+dependencies = [
+ "peg",
+]
+
+[[package]]
+name = "qry-runtime"
+version = "0.1.0"
+dependencies = [
  "arrow",
  "indexmap",
  "lazy_static",
- "peg",
  "prettytable-rs",
+ "qry-lang",
  "rusqlite",
 ]
 
@@ -523,7 +531,8 @@ name = "qry-web"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
- "qry",
+ "qry-lang",
+ "qry-runtime",
  "wasm-bindgen",
 ]
 

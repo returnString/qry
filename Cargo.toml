@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"qry",
+	"qry-lang",
+	"qry-runtime",
 	"qry-web",
-	"cli",
 ]

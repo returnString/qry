@@ -1,5 +1,5 @@
-use qry::lang::parse;
-use qry::runtime::{eval_multi, EvalContext};
+use qry_lang::parse;
+use qry_runtime::{eval_multi, EvalContext};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

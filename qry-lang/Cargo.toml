@@ -1,10 +1,8 @@
 [package]
-name = "qry"
+name = "qry-lang"
 version = "0.1.0"
 authors = ["Ruan Pearce-Authers <ruanpa@outlook.com>"]
 edition = "2018"
 
 [dependencies]
-qry-lang = { path = "../qry-lang" }
-qry-runtime = { path = "../qry-runtime" }
-rustyline = "6.1.2"
+peg = "0.6.2"

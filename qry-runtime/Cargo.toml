@@ -1,0 +1,15 @@
+[package]
+name = "qry-runtime"
+version = "0.1.0"
+authors = ["Ruan Pearce-Authers <ruanpa@outlook.com>"]
+edition = "2018"
+
+[dependencies]
+qry-lang = { path = "../qry-lang" }
+arrow = { version = "0.16.0", default-features = false }
+lazy_static = "1.4.0"
+indexmap = "1.4.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rusqlite = { version = "0.21.0", features = ["bundled"] }
+prettytable-rs = "0.8.0"

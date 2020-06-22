@@ -8,6 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-qry = { path = "../qry" }
+qry-lang = { path = "../qry-lang" }
+qry-runtime = { path = "../qry-runtime" }
 wasm-bindgen = "0.2.63"
 console_error_panic_hook = "0.1.6"
