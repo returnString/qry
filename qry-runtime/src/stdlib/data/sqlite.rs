@@ -203,7 +203,7 @@ fn connect_sqlite(ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> Eva
 	}))
 }
 
-pub fn sqlite_init_env(env: &mut Environment) {
+pub fn sqlite_init_env(env: &Environment) {
 	let connection_type = &env.get("Connection").unwrap().as_type();
 
 	env.define_builtin(

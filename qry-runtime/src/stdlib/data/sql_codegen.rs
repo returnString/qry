@@ -160,7 +160,6 @@ pub fn expr_to_sql(
 
 			let method = ctx
 				.env
-				.borrow()
 				.get(&target_ident)
 				.ok_or_else(|| ctx.exception(&target.location, "no method found"))?
 				.as_method();

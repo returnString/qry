@@ -1,4 +1,4 @@
-use super::{Builtin, EnvironmentPtr, Function, Method, NativeDescriptor, NativeType, Type};
+use super::{Builtin, Environment, Function, Method, NativeDescriptor, NativeType, Type};
 use qry_lang::SyntaxNode;
 use std::any::Any;
 use std::rc::Rc;
@@ -20,7 +20,7 @@ pub enum Value {
 	Function(Rc<Function>),
 	Builtin(Rc<Builtin>),
 	Method(Rc<Method>),
-	Library(EnvironmentPtr),
+	Library(Rc<Environment>),
 	Syntax(Box<SyntaxNode>),
 	Native(NativeWrapper),
 	List(Vec<Value>),

@@ -1,15 +1,15 @@
 use super::{
-	assign_value, eval, eval_multi, Callable, EnvironmentPtr, EvalContext, EvalResult, Parameter,
+	assign_value, eval, eval_multi, Callable, Environment, EvalContext, EvalResult, Parameter,
 	Signature, Value,
 };
 use qry_lang::{FunctionHeader, ParameterDef, SourceLocation, SyntaxNode};
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Function {
 	pub body: Vec<SyntaxNode>,
 	pub signature: Signature,
-	pub env: EnvironmentPtr,
+	pub env: Environment,
 	pub name: String,
 	pub location: SourceLocation,
 }
@@ -50,7 +50,7 @@ pub fn eval_function_decl(
 				_ => return Err(ctx.exception(&return_type.location, "expected a type")),
 			},
 		},
-		env: ctx.env.clone(),
+		env: (*ctx.env).clone(),
 		name: match header {
 			FunctionHeader::Function(Some(name)) => name,
 			FunctionHeader::Function(None) => "<anonymous function>",
@@ -90,12 +90,10 @@ impl Callable for Function {
 	}
 
 	fn call(&self, ctx: &EvalContext, args: &[Value], _: &[(&str, Value)]) -> EvalResult<Value> {
-		let func_body_env = self.env.borrow().child("funceval");
+		let func_body_env = self.env.child("funceval");
 
 		for (value, param) in args.iter().zip(&self.signature.params) {
-			func_body_env
-				.borrow_mut()
-				.update(&param.name, (*value).clone());
+			func_body_env.update(&param.name, (*value).clone());
 		}
 
 		eval_multi(&ctx.child(func_body_env), &self.body)

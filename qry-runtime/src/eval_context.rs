@@ -1,4 +1,4 @@
-use super::{Environment, EnvironmentPtr, Exception, Method, Value};
+use super::{Environment, Exception, Method, Value};
 use crate::stdlib;
 use qry_lang::{BinaryOperator, SourceLocation, UnaryOperator};
 use std::cell::RefCell;
@@ -42,8 +42,8 @@ impl Drop for EvalStackFrameScope<'_> {
 
 #[derive(Debug, Clone)]
 pub struct EvalContext {
-	pub env: EnvironmentPtr,
-	pub library_env: EnvironmentPtr,
+	pub env: Rc<Environment>,
+	pub library_env: Rc<Environment>,
 	pub methods: Rc<RuntimeMethods>,
 	pub callstack: Rc<RefCell<Vec<StackFrame>>>,
 }
@@ -53,18 +53,15 @@ impl EvalContext {
 		let global_env_ptr = Environment::new("global");
 		let library_env_ptr = Environment::new("libraries");
 
-		let add_lib = |env_ptr: EnvironmentPtr, add_to_global| {
-			let lib_val = Value::Library(env_ptr.clone());
-			let env = env_ptr.borrow();
-			library_env_ptr
-				.borrow_mut()
-				.update(env.name(), lib_val.clone());
+		let add_lib = |env: Rc<Environment>, add_to_global| {
+			let lib_val = Value::Library(env.clone());
+			library_env_ptr.update(env.name(), lib_val.clone());
 
 			if add_to_global {
-				env.copy_to(&mut global_env_ptr.borrow_mut());
+				env.copy_to(&global_env_ptr);
 			}
 
-			global_env_ptr.borrow_mut().update(env.name(), lib_val);
+			global_env_ptr.update(env.name(), lib_val);
 		};
 
 		let (ops_methods, ops_env) = stdlib::ops::create();
@@ -80,9 +77,9 @@ impl EvalContext {
 		}
 	}
 
-	pub fn child(&self, env_ptr: EnvironmentPtr) -> EvalContext {
+	pub fn child(&self, env: Rc<Environment>) -> EvalContext {
 		EvalContext {
-			env: env_ptr,
+			env,
 			..self.clone()
 		}
 	}

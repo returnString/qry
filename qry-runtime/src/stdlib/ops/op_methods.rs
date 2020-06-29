@@ -1,9 +1,9 @@
-use crate::{Environment, EnvironmentPtr, Method, RuntimeMethods, Signature, Type, Value};
+use crate::{Environment, Method, RuntimeMethods, Signature, Type, Value};
 use qry_lang::{BinaryOperator, UnaryOperator};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub fn create() -> (RuntimeMethods, EnvironmentPtr) {
+pub fn create() -> (RuntimeMethods, Rc<Environment>) {
 	let env = Environment::new("ops");
 	let binops = init_binops();
 	let unops = init_unops();
@@ -12,16 +12,12 @@ pub fn create() -> (RuntimeMethods, EnvironmentPtr) {
 	init_to_string(&to_string);
 	init_index(&index);
 
-	{
-		let mut env = env.borrow_mut();
+	for v in binops.values() {
+		env.update(v.name(), Value::Method(v.clone()));
+	}
 
-		for v in binops.values() {
-			env.update(v.name(), Value::Method(v.clone()));
-		}
-
-		for v in unops.values() {
-			env.update(v.name(), Value::Method(v.clone()));
-		}
+	for v in unops.values() {
+		env.update(v.name(), Value::Method(v.clone()));
 	}
 
 	(

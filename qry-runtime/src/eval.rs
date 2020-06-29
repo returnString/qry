@@ -1,12 +1,13 @@
 use super::{
-	eval_callable, eval_function_decl, Callable, EnvironmentPtr, EvalContext, Exception, Type, Value,
+	eval_callable, eval_function_decl, Callable, Environment, EvalContext, Exception, Type, Value,
 };
 use qry_lang::syntax::*;
+use std::rc::Rc;
 
 pub type EvalResult<T> = Result<T, Exception>;
 
 pub fn assign_value(ctx: &EvalContext, name: &str, value: Value) -> EvalResult<Value> {
-	ctx.env.borrow_mut().update(name, value.clone());
+	ctx.env.update(name, value.clone());
 	Ok(value)
 }
 
@@ -42,7 +43,7 @@ fn eval_binop(
 			};
 
 			if let Value::Library(lib_env) = eval(ctx, lhs)? {
-				if let Some(val) = lib_env.borrow().get(rhs_ident) {
+				if let Some(val) = lib_env.get(rhs_ident) {
 					Ok(val)
 				} else {
 					Err(ctx.exception(&rhs.location, format!("not found: {}", rhs_ident)))
@@ -88,11 +89,10 @@ fn resolve_lib(
 	ctx: &EvalContext,
 	parent_node: &SyntaxNode,
 	from: &[String],
-) -> Result<EnvironmentPtr, Exception> {
+) -> Result<Rc<Environment>, Exception> {
 	let mut current_env = ctx.library_env.clone();
 	for name in from {
-		let val = { current_env.borrow().get(name) };
-		if let Some(lib_value) = val {
+		if let Some(lib_value) = current_env.get(name) {
 			if let Value::Library(lib_env) = lib_value {
 				current_env = lib_env;
 			} else {
@@ -116,14 +116,14 @@ fn eval_import(
 	match import {
 		Import::Named(names) => {
 			for name in names {
-				if let Some(val) = lib_env.borrow().get(name) {
-					ctx.env.borrow_mut().update(name, val);
+				if let Some(val) = lib_env.get(name) {
+					ctx.env.update(name, val);
 				} else {
 					return Err(ctx.exception(&parent_node.location, format!("not found: {}", name)));
 				}
 			}
 		}
-		Import::Wildcard => lib_env.borrow().copy_to(&mut ctx.env.borrow_mut()),
+		Import::Wildcard => lib_env.copy_to(&ctx.env),
 	}
 
 	Ok(Value::Null(()))
@@ -158,7 +158,7 @@ pub fn eval(ctx: &EvalContext, node: &SyntaxNode) -> EvalResult<Value> {
 		} => eval_function_decl(ctx, &node.location, header, params, return_type, body),
 		Syntax::Use { from, import } => eval_import(ctx, node, from, import),
 		Syntax::Ident(name) => {
-			if let Some(val) = ctx.env.borrow().get(name) {
+			if let Some(val) = ctx.env.get(name) {
 				Ok(val)
 			} else {
 				Err(ctx.exception(&node.location, format!("not found: {}", name)))
