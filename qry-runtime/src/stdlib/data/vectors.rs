@@ -1,5 +1,6 @@
 use crate::{EvalContext, EvalResult, NativeGenericType, NativeType, Type, Value};
 use arrow::array::{ArrayRef, Int64Array, Int64Builder};
+use arrow::compute::{max, min, sum};
 use qry_lang::SourceLocation;
 use std::sync::Arc;
 
@@ -53,12 +54,36 @@ impl IntVector {
 		let mut ret = 0;
 		for arr in &self.data {
 			let concrete_arr = arr.as_any().downcast_ref::<Int64Array>().unwrap();
-			for i in 0..concrete_arr.len() {
-				ret += concrete_arr.value(i);
-			}
+			ret += sum(concrete_arr).unwrap_or(0);
 		}
 
 		ret
+	}
+
+	pub fn min(&self) -> Option<i64> {
+		let mut chunk_mins = Vec::new();
+		for arr in &self.data {
+			let concrete_arr = arr.as_any().downcast_ref::<Int64Array>().unwrap();
+
+			if let Some(val) = min(concrete_arr) {
+				chunk_mins.push(val);
+			}
+		}
+
+		chunk_mins.into_iter().min()
+	}
+
+	pub fn max(&self) -> Option<i64> {
+		let mut chunk_maxes = Vec::new();
+		for arr in &self.data {
+			let concrete_arr = arr.as_any().downcast_ref::<Int64Array>().unwrap();
+
+			if let Some(val) = max(concrete_arr) {
+				chunk_maxes.push(val);
+			}
+		}
+
+		chunk_maxes.into_iter().max()
 	}
 }
 

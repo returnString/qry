@@ -126,6 +126,8 @@ fn test_data_sqlite() {
 fn test_vectors() {
 	helpers::eval_expect_values(&[
 		("data::intvec(1, 2, 3) |> data::sum()", Value::Int(6)),
+		("data::intvec(1, 2, 3) |> data::min()", Value::Int(1)),
+		("data::intvec(1, 2, 3) |> data::max()", Value::Int(3)),
 		(
 			"typeof(data::intvec(1)) == data::Vector<Int>",
 			Value::Bool(true),

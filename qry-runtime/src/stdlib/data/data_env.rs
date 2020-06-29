@@ -5,6 +5,7 @@ use super::{
 	QueryPipeline, SelectStep, Vector,
 };
 use crate::{Environment, EnvironmentPtr, RuntimeMethods, Signature, Type, Value};
+use qry_lang::SourceLocation;
 use std::rc::Rc;
 
 pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
@@ -23,6 +24,31 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 			|_, args, _| {
 				let vec = args[0].as_native::<IntVector>();
 				Ok(Value::Int(vec.sum()))
+			},
+		);
+
+		let min_method = env.define_method("min", &["vec"], None, None);
+		min_method.register_builtin(
+			Signature::returning(&Type::Int).param("vec", intvector_type),
+			|ctx, args, _| {
+				let vec = args[0].as_native::<IntVector>();
+
+				match vec.min() {
+					Some(val) => Ok(Value::Int(val)),
+					None => Err(ctx.exception(&SourceLocation::Unknown, "empty vector")),
+				}
+			},
+		);
+
+		let max_method = env.define_method("max", &["vec"], None, None);
+		max_method.register_builtin(
+			Signature::returning(&Type::Int).param("vec", intvector_type),
+			|ctx, args, _| {
+				let vec = args[0].as_native::<IntVector>();
+				match vec.max() {
+					Some(val) => Ok(Value::Int(val)),
+					None => Err(ctx.exception(&SourceLocation::Unknown, "empty vector")),
+				}
 			},
 		);
 
