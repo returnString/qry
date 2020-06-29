@@ -85,6 +85,8 @@ lazy_static! {
 	static ref AGGREGATES: HashMap<String, AggregateFunc> = {
 		let mut s = HashMap::new();
 		s.insert("sum".into(), AggregateFunc::Simple);
+		s.insert("min".into(), AggregateFunc::Simple);
+		s.insert("max".into(), AggregateFunc::Simple);
 		s
 	};
 }

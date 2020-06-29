@@ -119,6 +119,30 @@ fn test_data_sqlite() {
 			),
 			Value::Int(80),
 		),
+		(
+			&with_table_bootstrap(
+				r#"
+				test_table
+					|> aggregate(oldest = max(age))
+					|> collect()
+					|> col("oldest")
+					|> sum()
+				"#,
+			),
+			Value::Int(27),
+		),
+		(
+			&with_table_bootstrap(
+				r#"
+				test_table
+					|> aggregate(youngest = min(age))
+					|> collect()
+					|> col("youngest")
+					|> sum()
+				"#,
+			),
+			Value::Int(26),
+		),
 	]);
 }
 
