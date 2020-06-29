@@ -230,9 +230,16 @@ pub fn env(methods: &RuntimeMethods) -> EnvironmentPtr {
 			Signature::returning(&Type::Any)
 				.param("df", dataframe_type)
 				.param("name", &Type::String),
-			|_, args, _| {
+			|ctx, args, _| {
 				let df = args[0].as_native::<DataFrame>();
-				Ok(df.col(args[1].as_string()))
+				let col_name = args[1].as_string();
+				match df.col(col_name) {
+					Some(col) => Ok(col),
+					None => Err(ctx.exception(
+						&SourceLocation::Unknown,
+						format!("column not found: {}", col_name),
+					)),
+				}
 			},
 		);
 

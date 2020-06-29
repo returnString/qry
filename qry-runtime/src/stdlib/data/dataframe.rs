@@ -94,11 +94,11 @@ impl DataFrame {
 		self.num_cols
 	}
 
-	pub fn col(&self, name: &str) -> Value {
-		let (col_idx, field) = self.batches[0].schema().column_with_name(name).unwrap();
+	pub fn col(&self, name: &str) -> Option<Value> {
+		let (col_idx, field) = self.batches[0].schema().column_with_name(name)?;
 		let arrays = self.batches.iter().map(|b| b.column(col_idx));
 		match field.data_type() {
-			DataType::Int64 => Value::new_native(IntVector::from_arrays(arrays)),
+			DataType::Int64 => Some(Value::new_native(IntVector::from_arrays(arrays))),
 			_ => panic!("unhandled datatype"),
 		}
 	}
