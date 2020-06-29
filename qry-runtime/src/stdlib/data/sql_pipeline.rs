@@ -182,7 +182,7 @@ pub struct FilterStep {
 
 impl PipelineStep for FilterStep {
 	fn render(&self, _: &EvalContext, state: RenderState) -> EvalResult<RenderState> {
-		let predicate = expr_to_sql(&self.ctx, &self.predicate, &state.metadata.columns, false)?;
+		let predicate = expr_to_sql(&self.ctx, &self.predicate, &state.metadata.columns)?;
 		Ok(state.wrap(&state.metadata, Some(&format!("where {}", predicate.text))))
 	}
 }
@@ -197,7 +197,7 @@ impl PipelineStep for SelectStep {
 		let col_exprs = self
 			.cols
 			.iter()
-			.map(|c| expr_to_sql(&self.ctx, c, &state.metadata.columns, false))
+			.map(|c| expr_to_sql(&self.ctx, c, &state.metadata.columns))
 			.collect::<EvalResult<Vec<_>>>()?;
 
 		let col_names = col_exprs.iter().map(|e| e.text.clone()).collect::<Vec<_>>();
@@ -224,12 +224,7 @@ impl PipelineStep for MutateStep {
 		let new_col_exprs = self
 			.new_cols
 			.iter()
-			.map(|(n, e)| {
-				Ok((
-					n,
-					expr_to_sql(&self.ctx, e, &state.metadata.columns, false)?,
-				))
-			})
+			.map(|(n, e)| Ok((n, expr_to_sql(&self.ctx, e, &state.metadata.columns)?)))
 			.collect::<EvalResult<Vec<_>>>()?;
 
 		let mut new_metadata = state.metadata.clone();
@@ -258,7 +253,7 @@ impl PipelineStep for GroupStep {
 			self
 				.grouping
 				.iter()
-				.map(|g| Ok(expr_to_sql(&self.ctx, g, &state.metadata.columns, false)?.text))
+				.map(|g| Ok(expr_to_sql(&self.ctx, g, &state.metadata.columns)?.text))
 				.collect::<EvalResult<Vec<_>>>()?,
 		);
 
@@ -276,7 +271,7 @@ impl PipelineStep for AggregateStep {
 		let aggregation_exprs = self
 			.aggregations
 			.iter()
-			.map(|(n, e)| Ok((n, expr_to_sql(&self.ctx, e, &state.metadata.columns, true)?)))
+			.map(|(n, e)| Ok((n, expr_to_sql(&self.ctx, e, &state.metadata.columns)?)))
 			.collect::<EvalResult<Vec<_>>>()?;
 
 		let mut new_columns = ColumnMap::new();

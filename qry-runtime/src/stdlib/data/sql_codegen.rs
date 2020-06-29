@@ -1,6 +1,8 @@
 use super::{ColumnMap, Vector};
 use crate::{eval, EvalContext, EvalResult, NativeGenericType, Type, Value};
+use lazy_static::lazy_static;
 use qry_lang::{BinaryOperator, Syntax, SyntaxNode};
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct SqlExpression {
@@ -75,11 +77,22 @@ fn interpret_value(val: Value) -> SqlExpression {
 	}
 }
 
+enum AggregateFunc {
+	Simple,
+}
+
+lazy_static! {
+	static ref AGGREGATES: HashMap<String, AggregateFunc> = {
+		let mut s = HashMap::new();
+		s.insert("sum".into(), AggregateFunc::Simple);
+		s
+	};
+}
+
 pub fn expr_to_sql(
 	ctx: &EvalContext,
 	expr: &SyntaxNode,
 	metadata: &ColumnMap,
-	as_aggregation: bool,
 ) -> EvalResult<SqlExpression> {
 	match &expr.syntax {
 		Syntax::Interpolate(contained_expr) => Ok(interpret_value(eval(ctx, contained_expr)?)),
@@ -93,8 +106,8 @@ pub fn expr_to_sql(
 			sql_type: metadata[col_name].data_type.clone(),
 		}),
 		Syntax::BinaryOp { lhs, op, rhs } => {
-			let lhs_val = expr_to_sql(ctx, lhs, metadata, as_aggregation)?;
-			let rhs_val = expr_to_sql(ctx, rhs, metadata, as_aggregation)?;
+			let lhs_val = expr_to_sql(ctx, lhs, metadata)?;
+			let rhs_val = expr_to_sql(ctx, rhs, metadata)?;
 			match ctx.methods.binops.get(&op) {
 				Some(method) => {
 					let resolved = method.resolve(&[lhs_val.sql_type, rhs_val.sql_type]);
@@ -111,13 +124,13 @@ pub fn expr_to_sql(
 			}
 		}
 		Syntax::Switch { target, cases } => {
-			let target_val = expr_to_sql(ctx, target, metadata, as_aggregation)?;
+			let target_val = expr_to_sql(ctx, target, metadata)?;
 
 			let whens = cases
 				.iter()
 				.map(|c| {
-					let case_val = expr_to_sql(ctx, &c.expr, metadata, as_aggregation)?;
-					let return_val = expr_to_sql(ctx, &c.returns, metadata, as_aggregation)?;
+					let case_val = expr_to_sql(ctx, &c.expr, metadata)?;
+					let return_val = expr_to_sql(ctx, &c.returns, metadata)?;
 					Ok(format!(
 						"when {} == {} then {}",
 						target_val.text, case_val.text, return_val.text,
@@ -129,7 +142,7 @@ pub fn expr_to_sql(
 
 			// TODO: validate consistency of return types
 			// for now, just use the first
-			let sql_type = expr_to_sql(ctx, &cases[0].returns, metadata, as_aggregation)?.sql_type;
+			let sql_type = expr_to_sql(ctx, &cases[0].returns, metadata)?.sql_type;
 
 			Ok(SqlExpression { text, sql_type })
 		}
@@ -152,7 +165,7 @@ pub fn expr_to_sql(
 
 			let args = positional_args
 				.iter()
-				.map(|a| expr_to_sql(ctx, a, metadata, as_aggregation))
+				.map(|a| expr_to_sql(ctx, a, metadata))
 				.collect::<EvalResult<Vec<_>>>()?;
 
 			let arg_text = args
@@ -161,10 +174,12 @@ pub fn expr_to_sql(
 				.collect::<Vec<_>>()
 				.join(", ");
 
+			let is_aggregate = AGGREGATES.contains_key(target_ident);
+
 			let arg_types = args
 				.iter()
 				.map(|a| {
-					if as_aggregation {
+					if is_aggregate {
 						Ok(Vector::resolve(ctx, &[a.sql_type.clone()])?)
 					} else {
 						Ok(a.sql_type.clone())
