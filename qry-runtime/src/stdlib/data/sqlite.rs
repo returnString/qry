@@ -12,6 +12,7 @@ use rusqlite::types::ValueRef;
 use rusqlite::{Connection as SqliteConnection, Result as SqliteResult, NO_PARAMS};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::panic::Location;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -35,17 +36,19 @@ lazy_static! {
 	};
 }
 
+#[track_caller]
 pub fn arrow_op<T>(ctx: &EvalContext, res: ArrowResult<T>) -> EvalResult<T> {
 	match res {
 		Ok(val) => Ok(val),
-		Err(err) => Err(ctx.exception(&SourceLocation::Unknown, format!("arrow error: {}", err))),
+		Err(err) => Err(ctx.exception(&Location::caller().into(), format!("arrow error: {}", err))),
 	}
 }
 
+#[track_caller]
 pub fn sqlite_op<T>(ctx: &EvalContext, res: SqliteResult<T>) -> EvalResult<T> {
 	match res {
 		Ok(val) => Ok(val),
-		Err(err) => Err(ctx.exception(&SourceLocation::Unknown, format!("sqlite error: {}", err))),
+		Err(err) => Err(ctx.exception(&Location::caller().into(), format!("sqlite error: {}", err))),
 	}
 }
 
