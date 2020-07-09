@@ -29,7 +29,7 @@ fn repl() {
 					Ok(value) => print_value(&ctx, value),
 					Err(err) => println!("{}", err),
 				},
-				Err(err) => println!("parser error {:?}", err),
+				Err(err) => println!("parser {}", err),
 			},
 			Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => break,
 			Err(err) => {
