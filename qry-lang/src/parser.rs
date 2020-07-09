@@ -25,7 +25,7 @@ peg::parser! {
 			= [' ' | '\n' | '\t' | '\r']+
 
 		rule ident() -> String
-			= s:$(['a'..='z' | 'A'..='Z' | '_']+) { s.to_string() }
+			= s:$(['a'..='z' | 'A'..='Z' | '_'] ['a'..='z' | 'A'..='Z' | '_' | '0'..='9']*) { s.to_string() }
 
 		rule param_def() -> ParameterDef<RawSyntaxNode>
 			= name:ident() _ ":" _ param_type:expr() { ParameterDef { name, param_type } }
